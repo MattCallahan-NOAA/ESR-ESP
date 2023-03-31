@@ -1,0 +1,209 @@
+---
+title: "Bering Sea ESR vs ESP comparison"
+author: "Matt Callahan"
+date: '2022-09-14'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview
+As of mid September 2022, we have submitted 3 ESP indicator as well as our draft contribution to the Bering Sea ESR. 
+The Bering Sea ESR showed below average chlorophyll.
+Conversely, 2/3 ESP chla indicators were the highest in the time series.
+This document explores the following potential source of error of that variaton. 
+
+## Indicator descriptions
+The ESR calculation excluded coastal and shallow water (Federal waters only, deeper than 10 m), and also excluded off-shelf water deeper than 200m.
+No depth filters ere applied to the ESP indicators.
+The spatial extents of the indicators are shown on the maps below.
+```{r}
+library(tidyverse)
+library(AKmarineareas)
+library(sf)
+library(lubridate)
+#esr extent
+bsesr<-AK_marine_area(area="Ecosystem Subarea")%>%
+  filter(Ecosystem_Area=="Eastern Bering Sea")
+# AMJ_Chlorophylla_Biomass_SEBS_Satellite extent
+amj_bsierp<-AK_marine_area(area="BSIERP Region")%>%  
+  filter(BSIERP_Region_Name%in%c("St. Matthew","Pribilofs"))
+#load crab polygons
+crab<-st_read(dsn="../../chla-indicator-comparison/Data/GIS/AK_Crab_Management_Areas.gdb", layer="BS_King_Crab_dd")
+#sebs_is
+sebs_is<-crab%>%filter(BS_KING=="BBRKC")
+stmatt<-crab%>%filter(BS_KING=="StMattBKC")
+
+ggplot()+
+  geom_sf(data=bsesr, color="red", fill=NA)+
+  geom_sf(data=amj_bsierp, color="green", fill=NA)+
+  geom_sf(data=sebs_is, color="blue", fill=NA)+
+  geom_sf(data=stmatt, color="turquoise", fill=NA)+
+  theme_bw()
+```
+
+## Examine spatial extents of bloom
+The most intense blooms in early to mid May are concentrated around St Matthew Islands. The ESR indicator has a much larger area to drown out concentrated blooms that occur in the St Matthew area. However, some weeks, like May 5, had the strongest bloom outside the St Matt ESP areas. 
+
+```{r}
+#load chla
+chla<-readRDS("../../chla-indicator-comparison/Data/MODIS/ESR/mod_bs.RDS")%>%
+  rename_with(tolower)%>%
+  filter(month %in% c(4:6))%>%
+  mutate(date=date(date))
+
+chla22<-chla%>%filter(year==2022)
+
+#plot blooms
+bloomplot<-function(m){ggplot()+
+  geom_point(data=chla22%>% filter(date==m & longitude<0), 
+             aes(x=longitude, y=latitude, color=chlorophyll))+
+  geom_sf(data=bsesr, color="black", fill=NA)+
+  geom_sf(data=amj_bsierp, color="black", fill=NA)+
+  geom_sf(data=sebs_is, color="black", fill=NA)+
+  geom_sf(data=stmatt, color="black", fill=NA)+
+  scale_color_viridis_c()+
+  theme_bw()}
+
+lapply(unique(chla22$date), bloomplot)
+
+```
+
+## Coastal influence
+Next I will recalculate the ESP indicators with the depth filters that are applied to the ESR data, and see if 2022 is still high.
+
+```{r}
+#AMJ_Chlorophylla_Biomass_SEBS_Satellite
+#recalculate indicator
+chla %>%
+  filter(bsierp_region_name%in%c("St. Matthew",
+                          "Pribilofs"
+                          ) & 
+           depth > -200 &
+           depth < -20 &
+           waters_cod == "FED"
+         ) %>%
+  group_by(year) %>%
+  summarise(amj_sebs=mean(chlorophyll,na.rm=TRUE))
+
+#Spring_Chlorophylla_Biomass_SEBS_Inner_Shelf_Satellite
+#recalculate indicator
+chla %>%
+  filter(bs_king=="BBRKC" &
+           depth > -200 &
+           depth < -20 &
+           waters_cod == "FED") %>%
+  group_by(year) %>%
+  summarise(sebs_is=mean(chlorophyll,na.rm=TRUE))
+
+#Spring_Chlorophylla_Biomass_SMBKC_Satellite
+#recalculate indicator
+chla %>%
+  filter(bs_king=="StMattBKC" & 
+           depth > -200 &
+           depth < -20 &
+           waters_cod == "FED") %>%
+  group_by(year) %>%
+  summarise(stmatt_mean=mean(chlorophyll,na.rm=TRUE))
+
+```
+
+This coastal influence seemed to have minimal impact on the results, probably because the near shore count is a small component of the total chla. 
+
+```{r}
+#1% State waters
+chla %>%
+  filter(bs_king=="StMattBKC")%>%
+  group_by(waters_cod)%>%
+  summarise(n=n())
+
+#2% depths excluded 
+chla %>%
+  filter(bs_king=="StMattBKC")%>%
+  mutate(depth2=ifelse(depth < -20 & depth > -200, "included", "excluded"))%>%
+  group_by(depth2)%>%
+  summarise(n=n())
+```
+
+## Recalculate ESR
+I will recalculate the ESR indicator using the same simple formulas as the ESP indicators to confirm that it is low.
+
+
+```{r}
+#calculate mean
+chla %>%
+  group_by(ecosystem_subarea) %>%
+  summarise(chla_mean=mean(chlorophyll,na.rm=TRUE))
+
+#recalculate indicator
+chla22 %>%
+  group_by(ecosystem_subarea) %>%
+  summarise(chla_2022=mean(chlorophyll,na.rm=TRUE))
+```
+Sure enough, esr region values are below average.
+
+## Compare weekly ESR and ESP values
+
+Just for fun I will plot the weekly values for these five indicators.
+
+```{r}
+p1<-chla22%>%
+  filter(ecosystem_subarea=="Southeastern Bering Sea")%>%
+  group_by(date)%>%
+  summarize(sebs_chla=mean(chlorophyll,na.rm=TRUE))%>%
+  ggplot()+
+  geom_line(aes(x=date, y=sebs_chla))+
+  ylim(c(0,15))+
+  ggtitle("sebs esr")
+
+p2<-chla22%>%
+  filter(ecosystem_subarea=="Northern Bering Sea")%>%
+  group_by(date)%>%
+  summarize(nbs_chla=mean(chlorophyll,na.rm=TRUE))%>%
+  ggplot()+
+  geom_line(aes(x=date, y=nbs_chla))+
+  ylim(c(0,15))+
+  ggtitle("nbs esr")
+
+p3<-chla22%>%
+  filter(bsierp_region_name%in%c("St. Matthew",
+                          "Pribilofs")
+         ) %>%
+  group_by(date) %>%
+  summarise(amj_sebs=mean(chlorophyll,na.rm=TRUE))%>%
+  ggplot()+
+  geom_line(aes(x=date, y=amj_sebs))+
+  ylim(c(0,15))+
+  ggtitle("amj_sebs")
+
+p4<-chla22%>%
+ filter(bs_king=="BBRKC") %>%
+  group_by(date) %>%
+  summarise(sebs_is=mean(chlorophyll,na.rm=TRUE))%>%
+  ggplot()+
+  geom_line(aes(x=date, y=sebs_is))+
+  ylim(c(0,15))+
+  ggtitle("sebs is")
+
+p5<-chla22%>%
+  filter(bs_king=="StMattBKC") %>%
+  group_by(date) %>%
+  summarise(stmatt_mean=mean(chlorophyll,na.rm=TRUE))%>%
+  ggplot()+
+  geom_line(aes(x=date, y=stmatt_mean))+
+  ylim(c(0,15))+
+  ggtitle("stmatt")
+
+p1
+p2
+p3
+p4
+p5
+
+
+```
+
+
+

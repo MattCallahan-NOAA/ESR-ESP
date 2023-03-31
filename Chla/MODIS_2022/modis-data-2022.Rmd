@@ -1,0 +1,471 @@
+---
+title: "ESR-Data_2022"
+author: "Matt Callahan"
+date: '2022-09-06'
+output: html_document
+---
+
+## Overview
+
+For 2022 the ESRs and ESPs, we download 8 day MODIS and append to previously created lookup tables. This code was originally saved as https://github.com/MattCallahan-NOAA/chla-indicator-comparison/blob/main/ESR-data-2022.Rmd and included OC-CCI downloads as well. Note: Do to large file sizes, data are not posted on github. 
+
+1) download MODIS data (by year, 
+east and west separate)
+2) Convert to tidy objects
+3) Join East and West for each year
+4) Create MODIS lookup table
+5) Join lookup table fields for each year
+6) Distribute data to Noel/Jens/Jeanette
+
+## MODIS
+
+**download data**
+
+```{r}
+#load packages
+library(tidync)
+library(tidyverse)
+library(lubridate)
+require(sf)
+require(AKmarineareas)
+library(marmap)
+
+#set long timeout
+options(timeout=6000)
+
+#Download data
+myyear <- 2003:2021 # I already downloaded 2020-2022
+#East
+for(i in myyear){
+  file_name <- paste0("Data/MODIS/ESR/mod_",i,"_e.nc")
+  download.file(url = paste0("https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdMH1chla8day.nc?chlorophyll%5B(",
+                             i,"-01-01T12:00:00Z):(", i,"-12-31T12:00:00Z)%5D%5B(69.02083):(46.02083)%5D%5B(-179.9792):(-129.9792)%5D&.draw=surface&.vars=longitude%7Clatitude%7CsstMasked&.colorBar=%7C%7C%7C%7C%7C&.bgColor=0xffccccff"),
+                method = "libcurl", mode="wb",destfile = file_name)
+}
+
+#west
+for(i in myyear){
+  file_name <- paste0("Data/MODIS/ESR/mod_",i,"_w.nc")
+  download.file(url = paste0("https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdMH1chla8day.nc?chlorophyll%5B(",
+                             i,"-01-01T12:00:00Z):(", i,"-12-31T12:00:00Z)%5D%5B(56.5):(46.5)%5D%5B(167):(179.9792)%5D&.draw=surface&.vars=longitude%7Clatitude%7CsstMasked&.colorBar=%7C%7C%7C%7C%7C&.bgColor=0xffccccff"),
+                method = "libcurl", mode="wb",destfile = file_name)
+}
+
+#2022
+#east of dateline
+download.file(url = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdMH1chla8day.nc?chlorophyll%5B(2022-01-01T12:00:00Z):(2022-06-14T12:00:00Z)%5D%5B(69.02083):(46.02083)%5D%5B(-179.9792):(-129.9792)%5D&.draw=surface&.vars=longitude%7Clatitude%7CsstMasked&.colorBar=%7C%7C%7C%7C%7C&.bgColor=0xffccccff", method = "libcurl", mode="wb",destfile = "Data/MODIS/ESR/mod_2022_e.nc")
+#west
+download.file(url = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdMH1chla8day.nc?chlorophyll%5B(2022-01-01T12:00:00Z):(2022-06-14T12:00:00Z)%5D%5B(56.5):(46.5)%5D%5B(167):(179.9792)%5D&.draw=surface&.vars=longitude%7Clatitude%7CsstMasked&.colorBar=%7C%7C%7C%7C%7C&.bgColor=0xffccccff", method = "libcurl", mode="wb",destfile = "Data/MODIS/ESR/mod_2022_w.nc")
+
+```
+
+Unfortunately April 11 was blank and April 19 was missing. One day MODIS was missing a lot of values from this period. We will add June to the original 2022 but April will be missing. from this year's ESR contribution. This code loads the last two weeks in June to be added to the 2022 files downloaded above.
+
+```{r}
+#2022 ceased to be updated but a new url was provided for us erdMH1chla8day_R2022NRT use this for June 22-30 2022
+
+#east of dateline
+download.file(url = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdMH1chla8day_R2022NRT.nc?chlorophyll%5B(2022-06-22T12:00:00Z):(2022-06-30T12:00:00Z)%5D%5B(69.02083):(46.02083)%5D%5B(-179.9792):(-129.9792)%5D&.draw=surface&.vars=longitude%7Clatitude%7CsstMasked&.colorBar=%7C%7C%7C%7C%7C&.bgColor=0xffccccff", method = "libcurl", mode="wb",destfile = "Data/MODIS/ESR/mod_jun_2022_e.nc")
+#west
+download.file(url = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdMH1chla8day_R2022NRT.nc?chlorophyll%5B(2022-06-22T12:00:00Z):(2022-06-30T12:00:00Z)%5D%5B(56.5):(46.5)%5D%5B(167):(179.9792)%5D&.draw=surface&.vars=longitude%7Clatitude%7CsstMasked&.colorBar=%7C%7C%7C%7C%7C&.bgColor=0xffccccff", method = "libcurl", mode="wb",destfile = "Data/MODIS/ESR/mod_jun_2022_w.nc")
+
+
+```
+
+**convert to tidy data objects**
+
+```{r}
+#function to convert to data frame
+tidy_chl<-function(file) {
+  tidync(file) %>% 
+  hyper_tibble()%>% 
+  mutate(date=as_datetime(time),
+         lonc=as.numeric(ifelse(longitude<0, #ifelse statement keeps +- lons the same length
+                                substr(longitude,1,8),
+                                substr(longitude,1,7))), 
+         latc=as.numeric(substr(latitude,1,6)),
+         chlorophyll=round(chlorophyll,3),
+         year=year(date),
+         month=month(date))
+}
+
+#Merge east and west for each year and save as RDS
+lapply(2003:2022, function(x) tidy_chl(paste0("Data/MODIS/ESR/mod_",x,"_e.nc"))%>%
+               bind_rows(tidy_chl(paste0("Data/MODIS/ESR/mod_",x,"_w.nc")))%>%
+         saveRDS(paste0("Data/MODIS/ESR/mod_",x,".RDS")))
+
+rm(mod_e, mod_w)
+
+mod_2003<-readRDS("Data/MODIS/ESR/mod_2003.RDS")
+
+ggplot()+
+  geom_point(data=mod_2003%>%filter(month==6), aes(x=ifelse(lonc>0, lonc, lonc+360), y=latc))+
+  geom_sf(data=ai%>%st_shift_longitude(), color="red", fill=NA)
+   
+```
+
+
+## Assign spatial strata
+The existing lookup table needs to be updated to reflect recent changes. I will make a new lookup table as I did for VIIRS and OCCCI
+
+**create grid**
+The first step is to create the lookup grid that can be joined with chla data.
+
+```{r}
+#create grid
+#determine extents
+mod_2003%>% filter(lonc<0) %>% summarise(MIN=min(lonc), MAX=max(lonc))
+mod_2003%>% filter(lonc>0) %>% summarise(MIN=min(lonc), MAX=max(lonc))
+min(mod_2003$latc); max(mod_2003$latc)
+
+lon<-as.numeric(substr(head(sort(unique(mod_2003$longitude)), 21), 1, 9))
+lon
+#create new vectors with 4 decimal places
+lon_lkp<-c(as.numeric(substr(seq(from=-179.97916666666666667, to=-129.979, by=0.0416666666666667), 1, 8)), #east
+          as.numeric(substr(seq(from=166.97916666666666667, to=179.9792, by=0.0416666666666667), 1, 7))) #west
+lat_lkp<-as.numeric(substr(seq(from=46.97916666666666667, to=69.0209, by=0.0416666666666667), 1, 7))
+
+#create grid
+modis_4k_grid<-expand.grid(lon_lkp, lat_lkp)%>%
+           mutate(lonc=as.numeric(ifelse(Var1<0, 
+                                substr(Var1,1,8),
+                                substr(Var1,1,7))), #from Jordan's code
+         latc=as.numeric(substr(Var2,1,6)))%>%
+  rename(latitude=Var2, longitude=Var1)
+
+#test join
+test_join<-mod_2003%>%
+  inner_join(modis_4k_grid, by=c("lonc"="lonc", "latc"="latc")) 
+
+ggplot()+
+      geom_point(data=test_join%>%filter(month==6), aes(x=ifelse(longitude.y>0, longitude.y, longitude.y+360), y=latitude.y), color="red")+
+  geom_point(data=test_join%>%filter(month==6), aes(x=ifelse(longitude.x>0, longitude.x, longitude.x+360), y=latitude.x))
+
+  
+```
+
+**Add marine area fields**
+We need the same fields as in the crw sst spatial lookup table. 
+
+*statefed* Flags if the location is in "state", "fed" or "intl" (international) waters.    
+
+*stat_area* ADF&G statistical area (there are 1758 of these total) <http://www.adfg.alaska.gov/index.cfm?adfg=fishingCommercialByFishery.statmaps>    
+
+*nmfsarea*  NMFS management areas <https://www.fisheries.noaa.gov/alaska/sustainable-fisheries/alaska-fisheries-figures-maps-boundaries-regulatory-areas-and-zones>   
+
+    
+
+*Ecosystem*  From the AK_MES shapefile created for the ESRs. The shapefiles has four areas but we omitted Arctic.    
+
+*Ecosystem_sub*  The AK_MES shapefile did not include all of the ESR subregions so I created them. NBS / SEBS are split at 60. EGOA and WGOA are split at 144. The eastern and western Aleutians are split at -177 and positive 177, with the central region in between.  
+
+*bsierp_name* and *bsierp_id*  Name and ID of BSIERP area.
+
+*crab areas* Bering Sea crab management areas: *nbs_crab*, *bs_king*, and *bs_tanner*.
+
+*depth*  This is the GEBCO bathymetry dataset as pulled by the marmap package using resolution=1. Data have been filtered for depths<0  
+
+We will use ADFG for our spatial extent. 1) they cover the rest of the ecosystem, NMFS, and BSIERP regions except the arctic, 2) The CRW lookup table uses the same extent, and 3) Spatial aggregations by stat area may become an importan seconday product as this data is gap-rich. 
+
+**Download sptial data**
+Spatial Data were loaded from two esri file geodatabases prepared by Brett Holycross at PSMFC. The Alaska Marine Management Areas layers contain ADFG, NMFS, and BSIERP regions, that have long been static. Ecosystem and Ecosystem subareas reflect the updated boundaries requested by Ecosystem Status Report Authors in 2022. The Bering Sea Crab area layers were created in consultation with Erin Fedewa (NMFS).
+
+```{r}
+#add eval=FALSE before knitting
+#load spatial data
+#marine management areas
+Management <- st_read(dsn="Data/GIS/Alaska_Marine_Management_Areas.gdb", layer="Alaska_Marine_Areas_dd")
+unique(Management$Area_Type)
+ADFG<-Management%>%filter(Area_Type=="ADFG Stat Area")%>%
+  dplyr::select(STAT_AREA, WATERS_COD, Shape_Length, Shape_Area, Shape)
+NMFS<-Management%>%filter(Area_Type=="NMFS Reporting Area")%>%
+  dplyr::select(NMFS_REP_AREA, Shape_Length, Shape_Area, Shape)
+ESR<-Management%>%filter(Area_Type=="Ecosystem Subarea")%>%
+  dplyr::select(Ecosystem_Subarea, Shape_Length, Shape_Area, Shape)
+LME<-Management%>%filter(Area_Type=="Ecosystem Area")%>%
+  dplyr::select(Ecosystem_Area, Shape_Length, Shape_Area, Shape)
+BSIERP<-Management%>%filter(Area_Type=="BSIERP Region")%>%
+  dplyr::select(BSIERP_ID, BSIERP_Region_Name, Shape_Length, Shape_Area, Shape)
+#crab areas
+nbs_crab <- st_read(dsn="Data/GIS/AK_Crab_Management_Areas.gdb", layer="NBS_Crab_dd")
+bs_tanner_crab <- st_read(dsn="Data/GIS/AK_Crab_Management_Areas.gdb", layer="BS_Tanner_Crab_dd")
+bs_king_crab <- st_read(dsn="Data/GIS/AK_Crab_Management_Areas.gdb", layer="BS_King_Crab_dd")
+
+```
+
+Add sptatial data to lookup table
+
+**Add spatial components to lookup table**
+```{r, eval=FALSE}
+#Turn off spherical geometry
+sf::sf_use_s2(FALSE)
+
+#point in polygon to add regional information to grid
+#convert grid to spatial object
+grid <- modis_4k_grid%>%
+  st_as_sf(coords = c('longitude', 'latitude'), crs = 4326, agr = 'constant')
+
+#ADFG
+grid<-st_join(grid, ADFG, join = st_within)
+
+#plot
+ggplot()+
+  geom_sf(data=grid, aes(color=STAT_AREA))
+
+#limit to points with a stat area
+#brings from >1 million to <400k
+grid<-grid%>%
+  filter(STAT_AREA>0)
+
+#NMFS
+grid<-grid%>%
+  st_join(NMFS, join = st_within)
+
+#way slow. Save output 
+saveRDS(grid, "Data/MODIS/grid_adfg_nmfs.RDS")
+
+#Ecosystem Area
+grid<-grid%>%
+  st_join(LME, join = st_within)
+saveRDS(grid, "Data/MODIS/grid_adfg_nmfs_lme.RDS")
+
+#Ecosystem subarea
+grid<-grid%>%
+  st_join(ESR, join = st_within)
+saveRDS(grid, "Data/MODIS/grid_adfg_nmfs_lme_esr.RDS")
+
+#BSIERP
+grid<-grid%>%
+  st_join(BSIERP, join = st_within)
+
+#NBS crab
+grid<-grid%>%
+  st_join(nbs_crab, join = st_within)
+
+#BS King crab
+grid<-grid%>%
+  st_join(bs_king_crab, join = st_within)
+
+#BS Tanner crab
+grid<-grid%>%
+  st_join(bs_tanner_crab, join = st_within)
+saveRDS(grid, "Data/MODIS/grid_all_boundaries.RDS")
+
+#filter out all of that shape.x.1 etc fields
+grid1<-grid%>%
+  dplyr::select(lonc, latc, STAT_AREA, WATERS_COD, NMFS_REP_AREA, Ecosystem_Area, Ecosystem_Subarea, BSIERP_ID, BSIERP_Region_Name, NBS_CRAB, BS_KING, BS_TANNER, Shape_Length.x, Shape_Area.x, geometry)
+
+```
+
+**add depth**
+We use NOAA bathymetry from the marmap package to attribute depth to points
+```{r, eval=FALSE}
+#Also load marmap
+r.ak <- getNOAA.bathy(lon1=-180,lon2=-129,lat1=47.5,lat2=71, resolution=1)
+#Positive longitudes
+r.ak_w <- getNOAA.bathy(lon1=167,lon2=180,lat1=47.5,lat2=71, resolution=1)
+#converting to a raster
+r.ak2 <- marmap::as.raster( r.ak)
+r.ak3 <- marmap::as.raster( r.ak_w)
+
+r.ak4<-raster::merge(r.ak2, r.ak3)
+
+
+#merge combined raster and remove positive depths
+grid2<-grid1%>%mutate(depth=round(raster::extract(r.ak4,cbind(lonc,latc),method="bilinear"),0))  %>% filter(depth<=0) 
+###QA
+
+summary(grid2$depth)
+
+#plot
+ggplot()+
+  geom_tile(data=grid2, aes(x=ifelse(lonc>0, lonc, lonc+360), y=latc, fill=depth, color=depth))
+
+```
+
+**save as csv**
+
+```{r, eval=FALSE}
+#remove spatial geometry fields
+modis_grid<-grid2%>%data.frame()%>%dplyr::select(!c(Shape_Length.x, Shape_Area.x, geometry))
+#export
+write.csv(modis_grid, "Data/MODIS/modis_chl_spatial_lookup.csv")
+```
+
+**test**
+Make sure that it works to merge this with the data
+
+```{r}
+test_join<-mod_2003%>%inner_join(modis_grid, by=c("lonc"="lonc", "latc"="latc"))
+#attribution looks good
+ggplot()+
+  geom_point(data=test_join%>%filter(month==6), aes(x=ifelse(lonc>0, lonc, lonc+360), y=latc, color=NMFS_REP_AREA ))
+#zoom in on small area
+
+ggplot()+
+  geom_point(data=test_join%>%filter(month==6), aes(x=ifelse(lonc>0, lonc, lonc+360), y=latc ))+
+  xlim(c(179,181))+ylim(c(55,56))
+```
+
+## Append strata to chla data
+Merge for each year
+```{r}
+#function to merge
+chla_merge<-function(x){
+  x%>%inner_join(modis_grid, by=c("lonc"="lonc", "latc"="latc"))
+}
+
+lapply(2005:2022, function(x) readRDS(paste0("Data/MODIS/ESR/mod_",x,".RDS"))%>%
+                                        chla_merge()%>%
+                                        saveRDS(paste0("Data/MODIS/ESR/mod_",x,"_strata.RDS")))
+       
+```
+
+## Append new 2022 data
+
+```{r}
+#load modis grid
+modis_grid<-read.csv("Data/MODIS/modis_chl_spatial_lookup.csv")%>%
+  dplyr::select(!X)
+#June
+#bind E and W Jun
+jun<-tidy_chl("Data/MODIS/ESR/mod_jun_2022_e.nc")%>%
+  bind_rows(tidy_chl("Data/MODIS/ESR/mod_jun_2022_w.nc"))
+  #append spatial strata
+jun<-chla_merge(jun)
+#load old 2022 data
+mod2022<-readRDS("Data/MODIS/ESR/mod_2022_strata.RDS")
+#combine
+mod2022<-mod2022%>%bind_rows(jun)
+#save
+saveRDS(mod2022, "Data/MODIS/ESR/mod_2022_strata.RDS")
+
+#compare 2022 and 2021 for merging
+mod2022<-readRDS("Data/MODIS/ESR/mod_2022_strata.RDS")
+mod2021<-readRDS("Data/MODIS/ESR/mod_2021_strata.RDS")
+#nmfs area needs to be chr in 2022
+mod2022$NMFS_REP_AREA<-as.character(mod2022$NMFS_REP_AREA)
+saveRDS(mod2022, "Data/MODIS/ESR/mod_2022_strata.RDS")
+```
+
+
+#Pull aleutians for NOEL
+```{r}
+#function to filter aleutions
+chla_ai<-function(x){
+  x%>%filter(Ecosystem_Area=="Aleutian Islands")
+}
+
+#bind rows with other years
+mod_ai<-lapply(2003:2022, function(x) readRDS(paste0("Data/MODIS/ESR/mod_",x,"_strata.RDS"))%>%
+                     chla_ai())%>%
+  bind_rows()
+
+mod_ai<-mod_ai%>%
+  dplyr::select(!c(lonc, latc, BSIERP_ID, BSIERP_Region_Name, NBS_CRAB, BS_KING, BS_TANNER))
+
+saveRDS(mod_ai, "Data/MODIS/ESR/mod_ai.RDS")
+
+#save as csv
+readRDS("Data/MODIS/ESR/mod_ai.RDS")%>%
+write.csv("Data/MODIS/ESR/mod_ai.csv", row.names=FALSE)
+```
+
+## compare modis with previous
+```{r}
+modis_old<-readRDS("Data/MODIS/merged_8day_2003_2021_Aleutians.RDS")
+
+modis_new<-readRDS("Data/MODIS/ESR/mod_ai.RDS")
+
+modis_old%>%
+  filter(Ecosystem_sub=="Western Aleutians")%>%
+  mutate(year=year(date))%>%
+  group_by(year)%>%
+  summarise(oldchla=round(mean(chlorophyll),3))%>%
+  bind_cols(modis_new%>%
+  filter(Ecosystem_Subarea=="Western Aleutians")%>%
+  mutate(year=year(date))%>%
+  group_by(year)%>%
+  summarise(newchla=round(mean(chlorophyll),3)))
+
+
+```
+
+# Pull BS for Jens
+```{r}
+#function to filter bs
+chla_bs<-function(x){
+  x%>%filter(Ecosystem_Area=="Eastern Bering Sea")
+}
+
+#bind rows with other years
+mod_bs<-lapply(2003:2022, function(x) readRDS(paste0("Data/MODIS/ESR/mod_",x,"_strata.RDS"))%>%
+                     chla_bs())%>%
+  bind_rows()
+
+
+saveRDS(mod_bs, "Data/MODIS/ESR/mod_bs.RDS")
+
+```
+
+
+# Pull GOA for Jeanette
+```{r}
+#function to filter goa
+chla_goa<-function(x){
+  x%>%filter(Ecosystem_Area=="Gulf of Alaska")
+}
+
+#bind rows with other years
+mod_goa<-lapply(2003:2022, function(x) readRDS(paste0("Data/MODIS/ESR/mod_",x,"_strata.RDS"))%>%
+                     chla_goa())%>%
+  bind_rows()
+
+mod_goa<-mod_goa%>%
+  dplyr::select(!c(lonc, latc, BSIERP_ID, BSIERP_Region_Name, NBS_CRAB, BS_KING, BS_TANNER))
+
+saveRDS(mod_goa, "Data/MODIS/ESR/mod_goa.RDS")
+
+```
+
+
+## Calculate April 19 for GOA
+April 16-19 daily chl are available from MODIS. Here I download them and compare with results excluding these data. 
+```{r}
+#east of dateline
+download.file(url = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdMH1chla1day.nc?chlorophyll%5B(2022-04-16T12:00:00Z):(2022-04-19T12:00:00Z)%5D%5B(69.02083):(46.02083)%5D%5B(-179.9792):(-129.9792)%5D&.draw=surface&.vars=longitude%7Clatitude%7CsstMasked&.colorBar=%7C%7C%7C%7C%7C&.bgColor=0xffccccff", method = "libcurl", mode="wb",destfile = "Data/MODIS/ESR/mod_apr1day_2022_e.nc")
+#west
+download.file(url = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdMH1chla1day.nc?chlorophyll%5B(2022-04-16T12:00:00Z):(2022-04-19T12:00:00Z)%5D%5B(56.5):(46.5)%5D%5B(167):(179.9792)%5D&.draw=surface&.vars=longitude%7Clatitude%7CsstMasked&.colorBar=%7C%7C%7C%7C%7C&.bgColor=0xffccccff", method = "libcurl", mode="wb",destfile = "Data/MODIS/ESR/mod_apr1day_2022_w.nc")
+
+#Merge east and west april 19
+april <-tidy_chl("Data/MODIS/ESR/mod_apr1day_2022_e.nc")%>%
+               bind_rows(tidy_chl("Data/MODIS/ESR/mod_apr1day_2022_w.nc"))
+
+table(april$date)
+
+
+#average
+april<-april%>%group_by(latitude, longitude)%>%
+  summarize(chla=mean(chlorophyll))%>%
+  mutate(time=1650369600,
+         date=as_datetime(time),
+         lonc=as.numeric(ifelse(longitude<0, #ifelse statement keeps +- lons the same length
+                                substr(longitude,1,8),
+                                substr(longitude,1,7))), 
+         latc=as.numeric(substr(latitude,1,6)),
+         chlorophyll=round(chla,3),
+         year=year(date),
+         month=month(date))%>%
+  dplyr::select(chlorophyll, everything())
+
+
+april<-chla_merge(april)
+april$NMFS_REP_AREA<-as.character(april$NMFS_REP_AREA)
+
+saveRDS(april, "Data/MODIS/ESR/mod_apr19.RDS")
+
+#provide to Noel
+april<-readRDS("Data/MODIS/ESR/mod_apr19.RDS")
+  filter(ecosystem)
+```
+

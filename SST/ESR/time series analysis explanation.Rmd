@@ -1,0 +1,129 @@
+---
+title: "ESR SST rolling average plots"
+author: "Matt Callahan"
+date: "7/26/2022"
+output: html_document
+---
+
+## Overview  
+This brief describes the creation of time series trend plots in the SST ESR contributions.
+The figure captions from previous ESRs read "time series trend of SST (seasonality and noise removed) for..."
+In brief, this analysis starts with daily sst values for each ESR subregion.
+From daily SST, a new data frame is created with the following fields:
+
+ * date
+ * observation: the SST value for that date
+ * trend: the average temperature for the year surrounding the date (6 months on either side)
+ * seasonal: The average temperature on that date
+ * random: the remainder of the variation in the observation unexplained by trend and seasonal
+
+The trend, seasonal, and random components sum to the observation for each day.  
+observation=trend+seasonal+random.
+
+Trend is the component plotted in these plots (black line) and the red lines are the mean (solid) and standard deviation (dashed) of the trend.
+
+This analysis is accomplished using the *dts1* function in the ggplottimeseries package https://rdrr.io/github/brisneve/ggplottimeseries/src/R/dts1.R, which in turn uses the base *decompose* function https://rdrr.io/r/stats/decompose.html
+
+## Example
+Bering Sea
+
+```{r}
+####load packages and data####
+library(tidyverse)
+library(httr)
+library(lubridate)
+#devtools::install_github("brisneve/ggplottimeseries")
+library(ggplottimeseries)
+
+#load data from AKFIN web service
+newdat <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Southeastern%20Bering%20Sea,Northern%20Bering%20Sea&start_date=19850101&end_date=20221231'), type = "application/json") %>% 
+  bind_rows %>% 
+  mutate(date=as_date(READ_DATE)) %>% 
+  data.frame %>% 
+  dplyr::select(date,meansst=MEANSST,Ecosystem_sub=ECOSYSTEM_SUB) %>% 
+  mutate(doy=yday(date),
+         year=year(date),
+         month=month(date),
+         day=day(date),
+         newdate=as.Date(ifelse(month>=9,as.character(as.Date(paste("1999",month,day,sep="-"),format="%Y-%m-%d")),
+                                as.character(as.Date(paste("2000",month,day,sep="-"),format="%Y-%m-%d"))),format("%Y-%m-%d")),
+         year2=ifelse(month>=9,year+1,year)) %>% 
+  arrange(date)
+```
+
+
+```{r}
+####perform time series decomposition####
+#This could be combined but is left separate for clarity
+df1 <- newdat %>% 
+  filter(Ecosystem_sub=="Southeastern Bering Sea")
+
+#  Perform the time series decomposition for the EGOA, setting the frequency as 365.25 because we have daily data with leap years.
+df1 <- dts1(df1$date,df1$meansst,365.25, type = "additive") %>% 
+  mutate(Ecosystem_sub="Southeastern Bering Sea",
+         year=year(date))
+
+#  Repeat for the wgoa
+df2 <- newdat %>% 
+  filter(Ecosystem_sub=="Northern Bering Sea")
+
+df2 <- dts1(df2$date,df2$meansst,365.25, type = "additive") %>% 
+  mutate(Ecosystem_sub="Northern Bering Sea",
+         year=year(date))
+
+#  Combine the time series decompositions for each area and reorder the factors.
+df <- df1 %>% 
+  bind_rows(df2)
+
+#  Create the horizontal mean and sd lines for the 30 year baseline period.
+dfmean <- df %>% 
+  group_by(Ecosystem_sub) %>% 
+  summarise(meantrend=mean(trend[between(year,1985,2014)],na.rm=TRUE),
+            sdtrend=sd(trend[between(year,1985,2014)],na.rm=TRUE))
+
+```
+
+```{r}
+####explore data####
+head(df)
+#trend and random are NA because they are in the earliest six months of the series
+
+##confirm relationship between variables, pick last fourth of july in the SEBS.
+with(df%>%filter(date=="2021-07-04" & Ecosystem_sub=="Southeastern Bering Sea"), observation)
+
+#sum others
+with(df%>%filter(date=="2021-07-04" & Ecosystem_sub=="Southeastern Bering Sea"), trend+seasonal+random)
+
+##confirm trend is the year around any date
+with(df%>%filter(year==1999 & Ecosystem_sub=="Southeastern Bering Sea"), mean(observation))
+with(df%>%filter(date=="1999-07-01" & Ecosystem_sub=="Southeastern Bering Sea"), trend)
+
+#slightly off, but very close, probably because of the leap year adjustment in the trend calculation.
+
+
+```
+
+```{r}
+####plot####
+OceansBlue2='#0055A4'
+df %>% 
+  #plots trend for each day
+  ggplot(aes(x = date, y = trend)) + 
+  geom_line(color="black") + 
+  #mean and sd
+  geom_hline(data=dfmean,aes(yintercept=meantrend),linetype=2) +
+  geom_hline(data=dfmean,aes(yintercept=meantrend+sdtrend),linetype=2,color="red") +
+  geom_hline(data=dfmean,aes(yintercept=meantrend-sdtrend),linetype=2,color="red") +
+  facet_wrap(~Ecosystem_sub) + 
+  theme_bw()+
+  theme(strip.text = element_text(size=10,color="white",family="sans",face="bold"),
+        strip.background = element_rect(fill=OceansBlue2),
+        axis.title = element_text(size=10,family="sans"),
+        axis.text = element_text(size=10,family="sans"),
+        panel.border=element_rect(colour="black",size=0.5, fill=NA),
+        plot.margin=unit(c(0.65,0,0.65,0),"cm")) + 
+  ylab("Sea surface temperature (C)") + 
+  xlab("Date")
+```
+ 
+ 

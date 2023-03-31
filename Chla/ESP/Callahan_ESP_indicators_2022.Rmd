@@ -1,0 +1,330 @@
+---
+title: "chla-indicators-2022"
+author: "Matt Callahan"
+date: '2022-08-31'
+output: html_document
+---
+
+## Notes
+1) 2022 Data downloading and appending of spatial strata are in the ESR-data-2022.RMD file
+
+2) Indicator calculation and validation of previous years is done in the chla-indicator-comparison-calc.RMD
+
+3) This file contains brief QAQC on the already questionable MODIS data for 2022 and calculates the indicators for 2022. Previous values will be used for 2003-2021.
+
+## QA of 2022 MODIS
+```{r}
+require(tidyverse)
+
+#AMJ... 12 seems high
+mod2022%>%  filter(BSIERP_Region_Name%in%c("St. Matthew",
+                          "Pribilofs"
+                          ) & 
+           month%in%c(4:6) 
+         ) %>%
+  group_by(date)%>%
+  summarise(MODIS_VALUE=mean(chlorophyll,na.rm=TRUE))#%>%
+  ggplot()+
+  geom_point(aes(x=date, y=MODIS_VALUE))
+
+#BBRKC
+ mod2022%>%  
+     filter(BS_KING=="BBRKC" & month%in%c(4:6)) %>%
+  group_by(date)%>%
+  summarise(MODIS_VALUE=mean(chlorophyll,na.rm=TRUE))#%>%
+  ggplot()+
+  geom_point(aes(x=date, y=MODIS_VALUE)) 
+ 
+ #SMBKC
+  mod2022%>%  
+  filter(BS_KING=="StMattBKC" & month%in%c(4:6)) %>%
+  group_by(date)%>%
+  summarise(MODIS_VALUE=mean(chlorophyll,na.rm=TRUE))%>%
+  ggplot()+
+  geom_point(aes(x=date, y=MODIS_VALUE)) 
+```
+# calculate missing values
+we can interpolate april 11 and 19... but since we don't first average by date before calculating indicators, this isn't particularly helpful. 
+
+```{r}
+library(zoo)
+#AMJ
+hm<-c(0.55,NA,NA,1.50)
+na.approx(hm)
+
+#BBKC
+ba<-c(0.45,NA,NA,2.33)
+na.approx(ba)
+
+```
+
+
+## Pull previous years for BS
+Using the same function we used for the Aleutians...
+
+```{r}
+#pull bering sea
+#function to filter EBS
+chla_bs<-function(x){
+  x%>%filter(Ecosystem_Area=="Eastern Bering Sea")
+}
+
+#bind rows with other years
+mod_ebs2<-lapply(2003:2021, function(x) readRDS(paste0("Data/MODIS/ESR/mod_",x,"_strata.RDS"))%>%
+                     chla_bs())%>%
+  bind_rows()
+```
+
+
+
+## AMJ_Chlorophylla_Biomass_SEBS_Satellite
+This confirms that the newly downloaded MODIS data matches previously calculated indicators. 
+I could have used the old mod_ebs from Jordan but since I supplied this version to Noel for the Aleutians I wanted to confirm it.
+
+```{r}
+#define indicator
+indicator<-"AMJ_Chlorophylla_Biomass_SEBS_Satellite"
+#MODIS
+
+#recalculate indicator
+mod_AMJ_SEBS <- mod_ebs %>%
+  mutate(month=month(date),
+         YEAR=year(date)) %>%
+  filter(bsierp_name%in%c("St. Matthew",
+                          "Pribilofs"
+                          ) & 
+           month%in%c(4:6) 
+         ) %>%
+  group_by(YEAR) %>%
+  summarise(MODIS_VALUE=mean(chlorophyll,na.rm=TRUE))
+
+#recalculate indicator
+mod_AMJ_SEBS2 <- mod_ebs2 %>%
+  mutate(YEAR=year)%>%
+  filter(BSIERP_Region_Name%in%c("St. Matthew",
+                          "Pribilofs"
+                          ) & 
+           month%in%c(4:6) 
+         ) %>%
+  group_by(YEAR) %>%
+  summarise(MODIS_VALUE=mean(chlorophyll,na.rm=TRUE))#%>%
+
+#join with previous indicator and compare
+temp<-pull_ind(indicator, mod_AMJ_SEBS2)
+ 
+```
+
+The following chunk calculates the indicator for 2022, binds to the 2003-2021 data, and saves as a csv.
+```{r}
+#recalculate indicator
+mod_AMJ_SEBS_2022 <- mod2022 %>%
+  mutate(YEAR=year)%>%
+  filter(BSIERP_Region_Name%in%c("St. Matthew",
+                          "Pribilofs"
+                          ) & 
+           month%in%c(4:6) 
+         ) %>%
+  group_by(YEAR) %>%
+  summarise(MODIS_VALUE=mean(chlorophyll,na.rm=TRUE))
+
+mod_AMJ_SEBS2<-mod_AMJ_SEBS2%>%
+  bind_rows(mod_AMJ_SEBS_2022)
+
+mod_AMJ_SEBS2$INDICATOR_NAME<-indicator
+mod_AMJ_SEBS2<-mod_AMJ_SEBS2%>%
+  mutate(DATA_VALUE=MODIS_VALUE)%>%
+  dplyr::select(c(YEAR, INDICATOR_NAME, DATA_VALUE))
+
+write.csv(mod_AMJ_SEBS2, "2022_indicators/AMJ_CHLA_SEBS.csv", row.names=FALSE)
+```
+
+
+
+## Spring_Chlorophylla_Biomass_SEBS_Inner_Shelf_Satellite
+I'm just going to calculate these 2.
+```{r}
+#define indicator
+indicator<-"Spring_Chlorophylla_Biomass_SEBS_Inner_Shelf_Satellite"
+#MODIS
+#recalculate indicator
+mod_BB <- mod_ebs2 %>%
+  mutate(YEAR=year) %>%
+  filter(BS_KING=="BBRKC" & month%in%c(4:6)) %>%
+  group_by(YEAR) %>%
+  summarise(DATA_VALUE=mean(chlorophyll,na.rm=TRUE))%>%
+  mutate(INDICATOR_NAME=indicator)%>%
+  dplyr::select(c(YEAR, INDICATOR_NAME, DATA_VALUE))
+
+#recalculate for 2022
+bb22 <- mod2022 %>%
+  mutate(YEAR=year)%>%
+  filter(BS_KING=="BBRKC" & month%in%c(4:6)) %>%
+  group_by(YEAR) %>%
+  summarise(DATA_VALUE=mean(chlorophyll,na.rm=TRUE))%>%
+  mutate(INDICATOR_NAME=indicator)%>%
+  dplyr::select(c(YEAR, INDICATOR_NAME, DATA_VALUE))
+
+mod_BB<-mod_BB%>%
+  bind_rows(bb22)
+
+write.csv(mod_BB, "2022_indicators/SPRING_CHLA_SEBS_IS.csv", row.names=FALSE)
+```
+
+## Spring_Chlorophylla_Biomass_SMBKC_Satellite
+
+```{r}
+#define indicator
+indicator<-"Spring_Chlorophylla_Biomass_SMBKC_Satellite"
+#MODIS
+#recalculate indicator
+mod_smbkc <- mod_ebs2 %>%
+  mutate(YEAR=year) %>%
+  filter(BS_KING=="StMattBKC" & month%in%c(4:6)) %>%
+  group_by(YEAR) %>%
+  summarise(DATA_VALUE=mean(chlorophyll,na.rm=TRUE))%>%
+  mutate(INDICATOR_NAME=indicator)%>%
+  dplyr::select(c(YEAR, INDICATOR_NAME, DATA_VALUE))
+
+#recalculate indicator for 2022
+sm22 <- mod2022 %>%
+  mutate(YEAR=year) %>%
+  filter(BS_KING=="StMattBKC" & month%in%c(4:6)) %>%
+  group_by(YEAR) %>%
+  summarise(DATA_VALUE=mean(chlorophyll,na.rm=TRUE))%>%
+  mutate(INDICATOR_NAME=indicator)%>%
+  dplyr::select(c(YEAR, INDICATOR_NAME, DATA_VALUE))
+
+mod_smbkc<-mod_smbkc%>%
+  bind_rows(sm22)
+
+write.csv(mod_smbkc, "2022_indicators/SPRING_CHLA_SMBKC.csv", row.names=FALSE)
+```
+
+## Groundfish indicators
+Here I calculate 2022 groundfish indicators for the GOA. Jens Nielson will calculate the BS
+
+Spring_Chlorophylla_Peak_EGOA_Satellite
+Spring_Chlorophylla_Peak_WCGOA_Satellite
+Spring_Chlorophylla_Biomass_EGOA_Satellite
+Spring_Chlorophylla_Biomass_WCGOA_Satellite
+
+ 
+##GOA    
+
+```{r}
+#pull bering sea
+#function to filter EBS
+chla_goa<-function(x){
+  x%>%filter(NMFS_REP_AREA %in% c(610, 620, 630, 640, 650))
+}
+
+#bind rows with other years
+mod_goa<-lapply(2003:2022, function(x) readRDS(paste0("Data/MODIS/ESR/mod_",x,"_strata.RDS"))%>%
+                     chla_goa())%>%
+  bind_rows()
+```
+
+
+
+## Spring_Chlorophylla_Biomass_GOA_Satellite
+
+This was originally Spring_Chlorophylla_Biomass_EGOA_Satellite. At the request of the sablefish ESP team we expanded the extent to gulf-wide and removed the depth filter.
+
+```{r}
+#define indicator
+indicator<-"Spring_Chlorophylla_Biomass_GOA_Satellite"
+
+#calculate indicator value
+mod_SPR_GOA_B <- mod_goa %>%
+  mutate(YEAR=year) %>%
+  filter(NMFS_REP_AREA %in% c(610, 620, 630, 640, 650) & month %in% c(4:6) & depth<(-10)) %>%
+  group_by(YEAR) %>%
+  summarise(DATA_VALUE=mean(chlorophyll,na.rm=TRUE))%>%
+  mutate(INDICATOR_NAME=indicator)%>%
+  dplyr::select(c(YEAR, INDICATOR_NAME, DATA_VALUE))
+
+write.csv(mod_SPR_GOA_B, "2022_indicators/Spring_Chlorophylla_Biomass_GOA_Satellite.csv", row.names=FALSE)
+```
+
+## Spring_Chlorophylla_Peak_GOA_Satellite
+
+This was originally Spring_Chlorophylla_Biomass_EGOA_Satellite. At the request of the sablefish ESP team we expanded the extent to gulf-wide and removed the depth filter.
+
+```{r}
+#define indicator
+indicator<-"Spring_Chlorophylla_Peak_GOA_Satellite"
+
+#calculate indicator value
+mod_SPR_GOA_P <- mod_goa %>%
+  filter(NMFS_REP_AREA %in% c(610, 620, 630, 640, 650) & month %in% c(4:6) & depth<=(-10)) %>%
+  group_by(date) %>%
+  summarise(WEEKLY_VALUE=mean(chlorophyll,na.rm=TRUE))%>%
+  mutate(YEAR=year(date))%>%
+  group_by(YEAR)%>%
+  slice(which.max(WEEKLY_VALUE))%>%
+  mutate(DATA_VALUE=yday(date))%>%
+  mutate(INDICATOR_NAME=indicator)%>%
+  dplyr::select(c(YEAR, INDICATOR_NAME, DATA_VALUE))
+
+write.csv(mod_SPR_GOA_P, "2022_indicators/Spring_Chlorophylla_Peak_GOA_Satellite.csv", row.names=FALSE)
+```
+
+
+## Spring_Chlorophylla_Biomass_WCGOA_Satellite
+
+I used the same filters Jordan included in his github code, the values are close, but do not match perfectly.
+
+```{r, warning=FALSE, message=FALSE}
+#define indicator
+indicator<-"Spring_Chlorophylla_Biomass_WCGOA_Satellite"
+
+#calculate indicator value
+mod_SPR_WCGOA_B <- mod_goa %>%
+  mutate(YEAR=year) %>%
+  filter(NMFS_REP_AREA %in% c(610, 620, 630) & month==5 & depth<(-10) & depth>(-200)) %>%
+  group_by(YEAR) %>%
+  summarise(DATA_VALUE=mean(chlorophyll,na.rm=TRUE))%>%
+  mutate(INDICATOR_NAME=indicator)%>%
+  dplyr::select(c(YEAR, INDICATOR_NAME, DATA_VALUE))
+
+#write csv
+write.csv(mod_SPR_WCGOA_B, "2022_indicators/Spring_Chlorophylla_Biomass_WCGOA_Satellite.csv", row.names=FALSE)
+
+```
+
+## Spring_Chlorophylla_Peak_WCGOA_Satellite
+
+```{r}
+#define indicator
+indicator<-"Spring_Chlorophylla_Peak_WCGOA_Satellite"
+#MODIS
+#recalculate indicator
+mod_SPR_WCGOA_P <- mod_goa %>%
+  filter(NMFS_REP_AREA %in% c(610, 620, 630) & month %in% c(4:6) & depth<=(-10) & depth>=(-200)) %>%
+  group_by(date) %>%
+  summarise(WEEKLY_VALUE=mean(chlorophyll,na.rm=TRUE))%>%
+  mutate(YEAR=year(date))%>%
+  group_by(YEAR)%>%
+  slice(which.max(WEEKLY_VALUE))%>%
+  mutate(DATA_VALUE=yday(date))%>%
+  mutate(INDICATOR_NAME=indicator)%>%
+  dplyr::select(c(YEAR, INDICATOR_NAME, DATA_VALUE))
+
+
+#write csv
+write.csv(mod_SPR_WCGOA_P, "2022_indicators/Spring_Chlorophylla_Peak_WCGOA_Satellite.csv", row.names=FALSE)
+```
+
+## quickly plot chla indicators
+```{r}
+ggplot()+
+  geom_line(data=mod_SPR_WCGOA_P, aes(x=YEAR, y=DATA_VALUE))+
+  geom_line(data=mod_SPR_GOA_P, aes(x=YEAR, y=DATA_VALUE), color="red")+
+  ggtitle("Peak chla: red=GOA, black=WCGOA")
+
+ggplot()+
+  geom_line(data=mod_SPR_WCGOA_B, aes(x=YEAR, y=DATA_VALUE))+
+  geom_line(data=mod_SPR_GOA_B, aes(x=YEAR, y=DATA_VALUE), color="red")+
+  ggtitle("Chla biomass: red=GOA, black=WCGOA")
+```
+
