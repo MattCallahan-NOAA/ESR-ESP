@@ -1,7 +1,7 @@
 # ESP-automated-indicators
 Code to automate ESP Satellite SST indicators within the AKFIN database
 
-As of 2021, there were four ESP indicators calculated from SST stored in AKFIN.
+As of 2022, there were four ESP indicators calculated from SST stored in AKFIN.
 
 **Spring_Temperature_Surface_EGOA_Satellite:** "Late spring (May-June) daily sea surface temperatures (SST) on a 5 km grid averaged over the eastern GOA (NMFS areas 640 and 650, no depth restriction) (Watson, 2020) from the NOAA Coral Reef Watch Program which provides the Global 5km Satellite sea surface temperatures 1985 to present. 
 
