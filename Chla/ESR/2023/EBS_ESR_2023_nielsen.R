@@ -13,6 +13,9 @@ library(RColorBrewer)
 bs_data <- readRDS("inter_jens_datafiles/mod_bs.RDS")
 head(bs_data)
 
+# this part add NA's to the data - but it makes it big and is not needed for Figs 2,3 an 4.
+# Need for Fig 1. but no need to redo that - since it doesnt change (its a map of the regions)
+# 
 # newebs <- bs %>%
 #   filter(Ecosystem_Area=="Eastern Bering Sea") %>%
 #   dplyr::select(id,chlorophyll,date) %>%
@@ -31,14 +34,9 @@ head(bs_data)
 # 
 # tail(newebs_join)
 # 
-
-
 #bs_data<-data.frame(newebs_join)
 
 
-
-
-gc()
 bs_data$doy<- yday(bs_data$date)
 
 # bs_data_sub<-bs_data[bs_data$year==2011,]
@@ -256,3 +254,42 @@ d_doy_facet$bsierp_major_areas<-factor((as.character(d_doy_facet$bsierp_major_ar
                                                                                                 "North middle shelf","North outer shelf","Offshelf","Bering Strait & St Lawrence"))
 
 
+
+d_doy_facet$bsierp_major_areas<-factor((as.character(d_doy_facet$bsierp_major_areas)), 
+                                       levels=c("Bering Strait & St Lawrence","North outer shelf","North middle shelf","North inner shelf",
+                                                "Offshelf","South outer shelf",  "South middle shelf","South inner shelf"))
+
+
+
+OuterSpacing = unit(20, "pt")
+
+
+fig3<- d_doy_facet %>% 
+  ggplot() + 
+  geom_tile(aes((doy),factor(year),fill=chlorophyll)) + 
+  #scale_fill_viridis(option="C",name="Chlorophyll-a (ug/L)",trans = "pseudo_log",limits = c(0.1,35)) + 
+  scale_fill_gradientn(colours = viridis(50), na.value = NA,name='',trans = "pseudo_log",limits = c(0.0,35),breaks=c(0,1,2,5,10,20,30))+ # 
+  guides(fill = guide_colourbar(barwidth = 15, barheight = 2.0))+
+  scale_y_discrete(breaks=c(2005,2010,2015,2020))+ # breaks=c(2004,2006,2008,2010,2012,2014,2016,2018,2020)
+  facet_wrap(bsierp_major_areas~.,ncol=4,labeller =as_labeller(jens_names)) +
+  xlim(60, 300)+
+  theme(strip.text = element_text(size=18,color="white",family="sans",face="bold"),
+        strip.background = element_rect(fill='dodgerblue'),
+        axis.title = element_text(size=20,family="sans"),
+        axis.text = element_text(size=18,family="sans"),
+        legend.text = element_text(size=16),
+        panel.background=element_blank(),
+        panel.border=element_rect(color="black",fill=NA),
+        axis.text.x=element_text(color="black"),
+        legend.position="top",
+        panel.spacing.x=OuterSpacing) +
+  ylab("Year") + 
+  xlab("Day of year")
+
+
+windows(14,9)
+fig3
+
+png(filename="Chla/ESR/2023/Fig3_satellite_Chla_ESR_EBS_tileplot.png",width = 1600, height = 1200,res=120)
+plot(fig3)
+dev.off()
