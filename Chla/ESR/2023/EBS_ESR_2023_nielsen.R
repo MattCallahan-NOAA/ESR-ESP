@@ -214,9 +214,9 @@ levels(a_mean$bsierp_major_areas)
 levels(a_median$bsierp_major_areas)
 length(unique(test_mer$year))
 test_mer$chlorophyll<-test_mer$chlorophyll.x
-color_filler<-rep(c(rep('dodgerblue',19),'blue'),8)
+color_filler<-rep(c(rep('dodgerblue',19),'blue'),8) # fix here - when more years are added # 
 
-windows(10,8)
+
 fig2<- test_mer %>% 
   ggplot() + 
   geom_bar(aes(year,chlorophyll),stat="identity",fill=color_filler) +
@@ -235,13 +235,24 @@ fig2<- test_mer %>%
   ylab("Chlorophyll-a [ug/L]") + 
   scale_y_continuous(limits=c(0,10),expand = c(0,0.0)) # Specify a boundary and expansion to set bars on bottom black line
 
-
-windows(26,15)
+# look at it @ 
+windows(10,8)
 fig2
 
 png(filename="Chla/ESR/2023/Fig2_satellite_Chla_ESR_EBS.png",width = 1600, height = 1200,res=120)
 plot(fig2)
 dev.off()
 
+
+#############
+### Fig 3 ### 
+#############
+d_doy_facet<-subset(d_doy,bsierp_major_areas %in% c("South inner shelf","South middle shelf","South outer shelf","North inner shelf",
+                                                    "North middle shelf","North outer shelf","Offshelf","Bering Strait & St Lawrence")  )
+
+
+
+d_doy_facet$bsierp_major_areas<-factor((as.character(d_doy_facet$bsierp_major_areas)), levels=c("South inner shelf","South middle shelf","South outer shelf","North inner shelf",
+                                                                                                "North middle shelf","North outer shelf","Offshelf","Bering Strait & St Lawrence"))
 
 
