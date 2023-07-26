@@ -90,9 +90,11 @@ file.remove(paste0("data/2023_e/",all_RDS))
 
 #### Download 1998-2023 data West of the meridian ####
 # ymin=47.5, ymax=60, xmin=167, xmax=180
-# startdate 19980101, enddate 20230720
+# ftp timed out with full download so did it in 2
+# startdate 19980101, enddate 20101231, order 900805022, 1228 records
+# startdate 20110101, enddate 20230720, order 787293221, 1154 records
 
-order_number<-203450380
+order_number<-900805022
 url<-paste0("ftp://ftp_hermes@ftp.hermes.acri.fr/",order_number,"/") # my full ftp link
 
 #userpwd<- "ftp_gc_MCallahan:MCallahan_5113"
