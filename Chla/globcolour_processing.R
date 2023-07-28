@@ -5,6 +5,8 @@ library(sf)
 library(akmarineareas2)
 library(marmap)
 library(lubridate)
+library(odbc)
+library(getPass)
 
 
 # 1 Create and validate spatial lookup table
@@ -192,7 +194,14 @@ grid<-grid %>%
 saveRDS(grid%>%rename_with(tolower), "data/globcolour_spatial_lookup.RDS")
 
 # 2 Create annual files with ID, startdate, and chla
+######This needs work
   # a join data
+glob23e<-readRDS("data/2023_e/globcolour_2023_e_update.RDS")
+big_glob<-function(year)
 
 # 3 Upload globcolour lkp and data to AKFIN
+  con <- dbConnect(odbc::odbc(), "akfin", UID=getPass(msg="USER NAME"), PWD=getPass()) 
+#write to env_data schema
+dbWriteTable(con, "GLOBCOLOUR_SPATIAL_LOOKUP", grid %>% rename_with(toupper))
+  
 
