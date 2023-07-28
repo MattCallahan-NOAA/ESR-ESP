@@ -205,6 +205,6 @@ f23<-merge(bloom_full,ice_full,by=c('gridid_MS','year'))
 head(f23)
 tail(f23)
 
-
+saveRDS(f23, file='Chla/bloom_ice_retreat_timing_upto23.RDS')
 
 
