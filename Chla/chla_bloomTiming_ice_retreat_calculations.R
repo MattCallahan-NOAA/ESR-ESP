@@ -77,8 +77,7 @@ timing_peak_all_log8<-data.frame(timing_peak_all_log8)
 
 head(timing_peak_all_log8)
 
-# plot 2023 here 
-windows()
+# plot 2023 here- just checking that it worked
 ggplot()+
   coord_equal(xlim=c(181,203),ylim=c(54.8,66),ratio = 1.8)+
   geom_point(data = timing_peak_all_log8, aes(x = lon+360, y = lat,fill=(peak_timing_all_log)),pch=21,size=7,color='black')+
