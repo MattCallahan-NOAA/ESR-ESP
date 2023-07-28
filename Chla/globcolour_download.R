@@ -16,6 +16,7 @@ library(here)
 # eg.
 glob1998_e<-readRDS("data/2022_e/1998_GlobColour_AV.RDS")
 
+
 #### Download 2023 data east of the meridian####
 # use their online tool. 
 # ymin=47.5, ymax=69, xmin=-180, xmax=-130
