@@ -204,4 +204,4 @@ big_glob<-function(year)
 #write to env_data schema
 dbWriteTable(con, "GLOBCOLOUR_SPATIAL_LOOKUP", grid %>% rename_with(toupper))
   
-
+dbWriteTable(con, "TEMP_GLOBCOLOUR_2023E", glob23e %>% rename_with(toupper))
