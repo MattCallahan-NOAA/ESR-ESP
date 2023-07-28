@@ -111,13 +111,14 @@ tail(bloom_df)
 #################################
 ### Calculation with ice data ###
 #################################
+is_23df<-readRDS("inter_jens_datafiles/Dummy_2023_ice_sst_ice_forGlob2019.RDS")
+head(is_23df)
+is_23df$a_ice<-is_23df$CRW_SEAICE
+is_23df$a_ice[is.na(is_23df$a_ice)]<-0 #
+is_23df$a_sst<-is_23df$CRW_SST
 
-
-is_22df$a_ice<-is_22df$CRW_SEAICE
-is_22df$a_ice[is.na(is_22df$a_ice)]<-0 #
-
-is_22df$a_sst<-is_22df$CRW_SST
-
+# dummy create 2023
+is_23df$year<-rep(2023,nrow(is_23df))
 
 
 smoother_value_forecast<-8 # note here this is the daily data 
@@ -126,31 +127,31 @@ smoother_value_forecast<-8 # note here this is the daily data
 
 
 
-is_22df<-is_22df %>% group_by(gridid_MS,year)  %>% arrange(doy) %>% mutate(a_ice = ifelse(a_ice>0.001, replace(a_ice, duplicated(CRW_SEAICE), NA), 0))
+is_23df<-is_23df %>% group_by(gridid_MS,year)  %>% arrange(doy) %>% mutate(a_ice = ifelse(a_ice>0.001, replace(a_ice, duplicated(CRW_SEAICE), NA), 0))
 
 # interpolating the ice data
-is_22df<-is_22df %>% group_by(gridid_MS,year)  %>% arrange(doy) %>% mutate(a_ice=ifelse(row_number()==1, mean(na.omit(a_ice)[1]), a_ice)) # first point
-is_22df<-is_22df %>% group_by(gridid_MS,year)  %>% arrange(doy) %>% mutate(a_ice=ifelse(row_number()==n(), last(na.omit(a_ice)), a_ice)) # last point
-is_22df<-is_22df %>% group_by(gridid_MS,year)  %>% arrange(doy) %>%   mutate(a_ice_int = na.approx(a_ice, na.rm=FALSE))
-is_22df<-is_22df %>% group_by(gridid_MS,year)  %>% arrange(doy) %>%   filter(!all(is.na(a_ice_int)))  %>%   mutate(a_ice_roll14 = forecast::ma(a_ice_int,order=smoother_value_forecast))
+is_23df<-is_23df %>% group_by(gridid_MS,year)  %>% arrange(doy) %>% mutate(a_ice=ifelse(row_number()==1, mean(na.omit(a_ice)[1]), a_ice)) # first point
+is_23df<-is_23df %>% group_by(gridid_MS,year)  %>% arrange(doy) %>% mutate(a_ice=ifelse(row_number()==n(), last(na.omit(a_ice)), a_ice)) # last point
+is_23df<-is_23df %>% group_by(gridid_MS,year)  %>% arrange(doy) %>%   mutate(a_ice_int = na.approx(a_ice, na.rm=FALSE))
+is_23df<-is_23df %>% group_by(gridid_MS,year)  %>% arrange(doy) %>%   filter(!all(is.na(a_ice_int)))  %>%   mutate(a_ice_roll14 = forecast::ma(a_ice_int,order=smoother_value_forecast))
 
 # spline estimator #
 
 # interpolating the temperature data
-is_22df<-is_22df %>% group_by(gridid_MS,year) %>% arrange(doy) %>% mutate(a_sst=ifelse(row_number()==1, mean(na.omit(a_sst)[1]), a_sst)) # first point
-is_22df<-is_22df %>% group_by(gridid_MS,year) %>% arrange(doy) %>% mutate(a_sst=ifelse(row_number()==n(), last(na.omit(a_sst)), a_sst)) # last point
-is_22df<-is_22df %>% group_by(gridid_MS,year) %>% arrange(doy)%>%   mutate(a_sst_int = na.approx(a_sst, na.rm=FALSE))
-is_22df<-is_22df %>% group_by(gridid_MS,year) %>% arrange(doy) %>%   filter(!all(is.na(a_sst_int)))  %>%   mutate(a_sst_roll14 = forecast::ma(a_sst_int,order=smoother_value_forecast))
+is_23df<-is_23df %>% group_by(gridid_MS,year) %>% arrange(doy) %>% mutate(a_sst=ifelse(row_number()==1, mean(na.omit(a_sst)[1]), a_sst)) # first point
+is_23df<-is_23df %>% group_by(gridid_MS,year) %>% arrange(doy) %>% mutate(a_sst=ifelse(row_number()==n(), last(na.omit(a_sst)), a_sst)) # last point
+is_23df<-is_23df %>% group_by(gridid_MS,year) %>% arrange(doy)%>%   mutate(a_sst_int = na.approx(a_sst, na.rm=FALSE))
+is_23df<-is_23df %>% group_by(gridid_MS,year) %>% arrange(doy) %>%   filter(!all(is.na(a_sst_int)))  %>%   mutate(a_sst_roll14 = forecast::ma(a_sst_int,order=smoother_value_forecast))
 
 
 ##########################
 ### ice retreat timing ###
 ##########################
-ice_ret_15 <- is_22df %>% group_by(gridid_MS,year)  %>% arrange(doy,decreasing = TRUE)  %>% filter(doy<181) %>%  filter(a_ice_roll14 > 0.15)%>%
+ice_ret_15 <- is_23df %>% group_by(gridid_MS,year)  %>% arrange(doy,decreasing = TRUE)  %>% filter(doy<181) %>%  filter(a_ice_roll14 > 0.15)%>%
   summarize(ice_retr_roll15 = max(doy))
 
 
-ice_df<-is_22df %>%
+ice_df<-is_23df %>%
   full_join(ice_ret_15, by=c('gridid_MS','year')) 
 
 
@@ -160,26 +161,50 @@ ave_ice_spring_toPeak <- ice_df %>% group_by(gridid_MS,year)   %>% filter(doy>29
 ###
 ### ssst this can be skipped # 
 ###
-sst_df<-is_22df %>% group_by(gridid_MS,doy) %>% arrange(doy)%>% filter(doy>90 & doy<152) %>% mutate(avg_grid_SST = mean(a_sst_int,na.rm=T))
+sst_df<-is_23df %>% group_by(gridid_MS,doy) %>% arrange(doy)%>% filter(doy>90 & doy<152) %>% mutate(avg_grid_SST = mean(a_sst_int,na.rm=T))
 sst_df_sum<- sst_df %>%   group_by(gridid_MS,year) %>% arrange(doy)%>% filter(doy>90 & doy<152) %>% summarise(cum_anomSST =sum( (a_sst_int-avg_grid_SST),na.rm=T))
 
 comb_df<- sst_df_sum %>% full_join(ave_ice_spring_toPeak,by=c('gridid_MS','year')) %>% 
   full_join(ice_ret_15,by=c('gridid_MS','year'))
 
-
+head(comb_df)
 
 
 #####
 ##### merging everything 
 # merge with previous years here 
-
+head(timing_peak_all_log8)
 # figure this out
+df_chl23_bloom_sub<-subset(timing_peak_all_log8,select = c( gridid_MS, year,lon,lat, depth,peak_timing_all_log))
+head(df_chl23_bloom_sub)
+str(df_chl23_bloom_sub)
 
 prevBL_df<- readRDS("inter_jens_datafiles/GLOBCOLOUR_1_smooth_8_day_composite_TIMING_jan2023.RDS")
+head(prevBL_df)
+prevBL_df_sub<-subset(prevBL_df,select = c( gridid_MS, year,lon,lat, depth,peak_timing_all_log))
+str(prevBL_df_sub)
+
+# rbind full bloom timnig data 
+bloom_full<-  data.frame(rbind(prevBL_df_sub,df_chl23_bloom_sub )) # prevBL_df_sub %>% full_join(df_chl23_bloom_sub, by=c('gridid_MS','year'))
+head(bloom_full)
+tail(bloom_full)
+
+
+# 
+previce_df<- readRDS("inter_jens_datafiles/all_years_ice_sst_timing_anomaly_data_created_3jan2023_8daysmooth.RDS")
+
+previce_df<-data.frame(previce_df)
+head(previce_df)
+str(previce_df)
+ice_full<-  data.frame(rbind(previce_df,comb_df )) # prevBL_df_sub %>% full_join(df_chl23_bloom_sub, by=c('gridid_MS','year'))
+head(ice_full)
+tail(ice_full)
+
+f23<-merge(bloom_full,ice_full,by=c('gridid_MS','year'))
+
+head(f23)
+tail(f23)
 
 
 
-gl_phen<-subset(glob,select = c( gridid_MS, year,lon,lat, depth,peak_timing_all_log, cum_anomSST ,mean_ice_frac, ice_retr_roll15))
-colnames(gl_phen)
-colnames(gl_phen)<-c('gridid','year','gl_lon','gl_lat', 'gl_depth','gl_peak_timing_all_log', 'gl_cum_anomSST' ,'gl_mean_ice_frac', 'gl_ice_retr_roll15')
 
