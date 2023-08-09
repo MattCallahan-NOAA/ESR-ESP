@@ -346,10 +346,65 @@ glob_data<-glob_data %>%
 
 # 3 Upload globcolour lkp and data to AKFIN
   con <- dbConnect(odbc::odbc(), "akfin", UID=getPass(msg="USER NAME"), PWD=getPass()) 
-#write to env_data schema
-dbWriteTable(con, "GLOBCOLOUR_SPATIAL_LOOKUP", lkp %>% rename_with(toupper))
+
   
+  #write lookup table to env_data schema 
+  # #define data types within lkp
+  # lkp<-lkp%>% rename_with(toupper)%>%
+  #   mutate(DEPTH=as.integer(DEPTH),
+  #          CRW_ID=as.integer(CRW_ID),
+  #          GLOB_ID=as.integer(GLOB_ID))
+  
+
+dbWriteTable(con, "GLOBCOLOUR_SPATIAL_LOOKUP", lkp %>% rename_with(toupper)
+             #,
+             # field.types=c(JOIN_LAT="number",
+             #               JOIN_LON="number",
+             #               CHLA_LON="number",
+             #               CHLA_LAT="number",
+             #               STAT_AREA="integer",
+             #               WATERS_COD="varchar2(50)",
+             #               NMFS_REP_AREA="varchar2(50)",
+             #               ECOSYSTEM_AREA="varchar2(50)",
+             #               ECOSYSTEM_SUBAREA="varchar2(50)",
+             #               BSIERP_ID="integer",
+             #               BSIERP_REGION_NAME="varchar2(50)",
+             #               DEPTH="integer",
+             #               NBS_CRAB="varchar2(50)",
+             #               BS_KING="varchar2(50)",
+             #               BS_TANNER="varchar2(50)",
+             #               JENS_GRID="integer",
+             #               CRW_ID="varchar2(50)",
+             #               GLOB_ID="integer")
+             )
+
+
+  
+
+dbRemoveTable(con, "GLOBCOLOUR_SPATIAL_LOOKUP")
+
+
 
   
 # write all globcolour data
 dbWriteTable(con, "GLOBCOLOUR", glob_data %>% rename_with(toupper))
+
+
+dbDisconnect(con)
+
+#### having trouble writing to the database after updating R and odbc ####
+#since i actually want to use the data today...
+write.csv(lkp%>%rename_with(toupper), "data/globcolour_spatial_lookup.csv", row.names = FALSE)
+
+
+#used import from csv in sql developer.
+
+#changed the data types in the globcolour table in sql developer
+
+# create table globcolour_2023 as
+# (select ROUND(to_number(GLOB_ID),0) GLOB_ID,
+#   START_DATE,
+#   ROUND(TO_NUMBER(CHLA),2) CHLA
+#   FROM GLOBCOLOUR);
+# 
+# commit;
