@@ -6,8 +6,11 @@ output: html_document
 ---
 
 ## Notes
-In 
-
+In 2023 we switched chlorophyll products from MODIS to globcolour. 
+I downloaded globcolour data and pushed it to the AKFIN database. 
+That work can be found in the globcolour_download.R and globcolour_processing scripts.
+Since the required data for ESP indicators is in AKFIN I will directly push to the database. 
+This document meerly shows checks to make sure I get the same results as before when I just did it in R.
 
 
 ## AMJ_Chlorophylla_Biomass_SEBS_Satellite
@@ -20,17 +23,15 @@ library(odbc)
 library(getPass)
 #connect to akfin
 con <- dbConnect(odbc::odbc(), "akfin", UID=getPass(msg="USER NAME"), PWD=getPass()) 
-#define indicator
-indicator<-"AMJ_Chlorophylla_Biomass_SEBS_Satellite"
-#MODIS
 
 #recalculate indicator for 2023 from the akfin database
-glob_AMJ_SEBS <-dbFetch(dbSendQuery(con, "select round(avg(chla),2) data_value, count(*) n_values 
-from globcolour_2023 a
-left join globcolour_spatial_lookup b on a.glob_id=b.glob_id
-where extract(year from to_date(start_date,'YYYY-MM-DD'))=2023
-and extract(month from to_date(start_date,'YYYY-MM-DD')) in (4, 5, 6)
-and bsierp_region_name in ('St. Matthew','Pribilofs')"))
+glob_AMJ_SEBS <-dbFetch(dbSendQuery(con, "select extract(year from to_date(start_date,'YYYY-MM-DD')) year, 'AMJ_Chlorophylla_Biomass_SEBS_Satellite' as indicator_name, round(avg(chla),2) data_value
+from env_data.globcolour_2023 a
+left join env_data.globcolour_spatial_lookup b on a.glob_id=b.glob_id
+where extract(month from to_date(start_date,'YYYY-MM-DD')) in (4, 5, 6)
+and bsierp_region_name in ('St. Matthew','Pribilofs')
+group by extract(year from to_date(start_date,'YYYY-MM-DD'))
+order by extract(year from to_date(start_date,'YYYY-MM-DD')) asc"))
   
 #calulcate from RDS files
 glob_AMJ_SEBS2 <- readRDS("../../data/2023_combined/2023_for_akfin.RDS") %>%
@@ -42,104 +43,53 @@ glob_AMJ_SEBS2 <- readRDS("../../data/2023_combined/2023_for_akfin.RDS") %>%
            month%in%c(4:6)) %>%
   summarize(data_value=mean(chla), n_values=n())
 
-#recalculate indicator
-mod_AMJ_SEBS2 <- mod_ebs2 %>%
-  mutate(YEAR=year)%>%
-  filter(BSIERP_Region_Name%in%c("St. Matthew",
-                          "Pribilofs"
-                          ) & 
-           month%in%c(4:6) 
-         ) %>%
-  group_by(YEAR) %>%
-  summarise(MODIS_VALUE=mean(chlorophyll,na.rm=TRUE))#%>%
-
  
 ```
 
-The following chunk calculates the indicator for 2022, binds to the 2003-2021 data, and saves as a csv.
-```{r}
-#recalculate indicator
-mod_AMJ_SEBS_2022 <- mod2022 %>%
-  mutate(YEAR=year)%>%
-  filter(BSIERP_Region_Name%in%c("St. Matthew",
-                          "Pribilofs"
-                          ) & 
-           month%in%c(4:6) 
-         ) %>%
-  group_by(YEAR) %>%
-  summarise(MODIS_VALUE=mean(chlorophyll,na.rm=TRUE))
-
-mod_AMJ_SEBS2<-mod_AMJ_SEBS2%>%
-  bind_rows(mod_AMJ_SEBS_2022)
-
-mod_AMJ_SEBS2$INDICATOR_NAME<-indicator
-mod_AMJ_SEBS2<-mod_AMJ_SEBS2%>%
-  mutate(DATA_VALUE=MODIS_VALUE)%>%
-  dplyr::select(c(YEAR, INDICATOR_NAME, DATA_VALUE))
-
-write.csv(mod_AMJ_SEBS2, "2022_indicators/AMJ_CHLA_SEBS.csv", row.names=FALSE)
-```
-
-
 
 ## Spring_Chlorophylla_Biomass_SEBS_Inner_Shelf_Satellite
-I'm just going to calculate these 2.
 ```{r}
-#define indicator
-indicator<-"Spring_Chlorophylla_Biomass_SEBS_Inner_Shelf_Satellite"
-#MODIS
-#recalculate indicator
-mod_BB <- mod_ebs2 %>%
-  mutate(YEAR=year) %>%
-  filter(BS_KING=="BBRKC" & month%in%c(4:6)) %>%
-  group_by(YEAR) %>%
-  summarise(DATA_VALUE=mean(chlorophyll,na.rm=TRUE))%>%
-  mutate(INDICATOR_NAME=indicator)%>%
-  dplyr::select(c(YEAR, INDICATOR_NAME, DATA_VALUE))
+#recalculate indicator for 2023 from the akfin database
+glob_BBRKC <-dbFetch(dbSendQuery(con, "select extract(year from to_date(start_date,'YYYY-MM-DD')) year, 'Spring_Chlorophylla_Biomass_SEBS_Inner_Shelf_Satellite' as indicator_name, round(avg(chla),2) data_value
+from env_data.globcolour_2023 a
+left join env_data.globcolour_spatial_lookup b on a.glob_id=b.glob_id
+where extract(month from to_date(start_date,'YYYY-MM-DD')) in (4, 5, 6)
+and bs_king='BBRKC'
+group by extract(year from to_date(start_date,'YYYY-MM-DD'))
+order by extract(year from to_date(start_date,'YYYY-MM-DD')) asc"))
+  
+#calulcate from RDS files
+glob_BBRCK2 <- readRDS("../../data/2023_combined/2023_for_akfin.RDS") %>%
+  left_join(readRDS("../../data/globcolour_spatial_lookup.RDS"),
+            by="glob_id")%>%
+  mutate(month=month(ymd(start_date))) %>%
+  filter(bs_king =='BBRKC' & 
+           month%in%c(4:6)) %>%
+  summarize(data_value=mean(chla), n_values=n())
 
-#recalculate for 2022
-bb22 <- mod2022 %>%
-  mutate(YEAR=year)%>%
-  filter(BS_KING=="BBRKC" & month%in%c(4:6)) %>%
-  group_by(YEAR) %>%
-  summarise(DATA_VALUE=mean(chlorophyll,na.rm=TRUE))%>%
-  mutate(INDICATOR_NAME=indicator)%>%
-  dplyr::select(c(YEAR, INDICATOR_NAME, DATA_VALUE))
-
-mod_BB<-mod_BB%>%
-  bind_rows(bb22)
-
-write.csv(mod_BB, "2022_indicators/SPRING_CHLA_SEBS_IS.csv", row.names=FALSE)
 ```
 
 ## Spring_Chlorophylla_Biomass_SMBKC_Satellite
 
 ```{r}
-#define indicator
-indicator<-"Spring_Chlorophylla_Biomass_SMBKC_Satellite"
-#MODIS
-#recalculate indicator
-mod_smbkc <- mod_ebs2 %>%
-  mutate(YEAR=year) %>%
-  filter(BS_KING=="StMattBKC" & month%in%c(4:6)) %>%
-  group_by(YEAR) %>%
-  summarise(DATA_VALUE=mean(chlorophyll,na.rm=TRUE))%>%
-  mutate(INDICATOR_NAME=indicator)%>%
-  dplyr::select(c(YEAR, INDICATOR_NAME, DATA_VALUE))
+glob_stmatt <-dbFetch(dbSendQuery(con, "select extract(year from to_date(start_date,'YYYY-MM-DD')) year, 'Spring_Chlorophylla_Biomass_SMBKC_Satellite' as indicator_name, round(avg(chla),2) data_value
+from env_data.globcolour_2023 a
+left join env_data.globcolour_spatial_lookup b on a.glob_id=b.glob_id
+where extract(month from to_date(start_date,'YYYY-MM-DD')) in (4, 5, 6)
+and bs_king='StMattBKC'
+group by extract(year from to_date(start_date,'YYYY-MM-DD'))
+order by extract(year from to_date(start_date,'YYYY-MM-DD')) asc"))
+  
+#calulcate from RDS files
+glob_stmatt2 <- readRDS("../../data/2023_combined/2023_for_akfin.RDS") %>%
+  left_join(readRDS("../../data/globcolour_spatial_lookup.RDS"),
+            by="glob_id")%>%
+  mutate(month=month(ymd(start_date))) %>%
+  filter(bs_king =='StMattBKC' & 
+           month%in%c(4:6)) %>%
+  summarize(data_value=mean(chla), n_values=n())
 
-#recalculate indicator for 2022
-sm22 <- mod2022 %>%
-  mutate(YEAR=year) %>%
-  filter(BS_KING=="StMattBKC" & month%in%c(4:6)) %>%
-  group_by(YEAR) %>%
-  summarise(DATA_VALUE=mean(chlorophyll,na.rm=TRUE))%>%
-  mutate(INDICATOR_NAME=indicator)%>%
-  dplyr::select(c(YEAR, INDICATOR_NAME, DATA_VALUE))
 
-mod_smbkc<-mod_smbkc%>%
-  bind_rows(sm22)
-
-write.csv(mod_smbkc, "2022_indicators/SPRING_CHLA_SMBKC.csv", row.names=FALSE)
 ```
 
 ## Groundfish indicators
@@ -150,66 +100,81 @@ Spring_Chlorophylla_Peak_WCGOA_Satellite
 Spring_Chlorophylla_Biomass_EGOA_Satellite
 Spring_Chlorophylla_Biomass_WCGOA_Satellite
 
- 
-##GOA    
-
-```{r}
-#pull bering sea
-#function to filter EBS
-chla_goa<-function(x){
-  x%>%filter(NMFS_REP_AREA %in% c(610, 620, 630, 640, 650))
-}
-
-#bind rows with other years
-mod_goa<-lapply(2003:2022, function(x) readRDS(paste0("Data/MODIS/ESR/mod_",x,"_strata.RDS"))%>%
-                     chla_goa())%>%
-  bind_rows()
-```
-
-
 
 ## Spring_Chlorophylla_Biomass_GOA_Satellite
 
-This was originally Spring_Chlorophylla_Biomass_EGOA_Satellite. At the request of the sablefish ESP team we expanded the extent to gulf-wide and removed the depth filter.
 
 ```{r}
 #define indicator
-indicator<-"Spring_Chlorophylla_Biomass_GOA_Satellite"
 
-#calculate indicator value
-mod_SPR_GOA_B <- mod_goa %>%
-  mutate(YEAR=year) %>%
-  filter(NMFS_REP_AREA %in% c(610, 620, 630, 640, 650) & month %in% c(4:6) & depth<(-10)) %>%
-  group_by(YEAR) %>%
-  summarise(DATA_VALUE=mean(chlorophyll,na.rm=TRUE))%>%
-  mutate(INDICATOR_NAME=indicator)%>%
-  dplyr::select(c(YEAR, INDICATOR_NAME, DATA_VALUE))
+glob_goa <-dbFetch(dbSendQuery(con, "select extract(year from to_date(start_date,'YYYY-MM-DD')) year, 'Spring_Chlorophylla_Biomass_GOA_Satellite' as indicator_name, round(avg(chla),2) data_value
+from env_data.globcolour_2023 a
+left join env_data.globcolour_spatial_lookup b on a.glob_id=b.glob_id
+where extract(month from to_date(start_date,'YYYY-MM-DD')) in (4, 5, 6)
+and NMFS_REP_AREA in ('610', '620', '630', '640', '650')
+and depth <= (-10)
+group by extract(year from to_date(start_date,'YYYY-MM-DD'))
+order by extract(year from to_date(start_date,'YYYY-MM-DD')) asc"))
+  
+#calulcate from RDS files
+glob_goa2 <- readRDS("../../data/2023_combined/2023_for_akfin.RDS") %>%
+  left_join(readRDS("../../data/globcolour_spatial_lookup.RDS"),
+            by="glob_id")%>%
+  mutate(month=month(ymd(start_date))) %>%
+  filter(nmfs_rep_area %in% c('610', '620', '630', '640', '650') & 
+           month%in%c(4,5,6) &
+           depth<= (-10)) %>%
+  summarize(data_value=mean(chla), n_values=n())
 
-write.csv(mod_SPR_GOA_B, "2022_indicators/Spring_Chlorophylla_Biomass_GOA_Satellite.csv", row.names=FALSE)
 ```
 
 ## Spring_Chlorophylla_Peak_GOA_Satellite
 
 This was originally Spring_Chlorophylla_Biomass_EGOA_Satellite. At the request of the sablefish ESP team we expanded the extent to gulf-wide and removed the depth filter.
 
+I am just going to submit these the old fashion way...
+
 ```{r}
 #define indicator
-indicator<-"Spring_Chlorophylla_Peak_GOA_Satellite"
+glob_goa_pk <-dbFetch(dbSendQuery(con, "WITH ranked_data AS (
+    SELECT
+         year,
+         doy,
+        meanchla,
+        ROW_NUMBER() OVER (PARTITION BY year ORDER BY meanchla DESC) AS rn
+        from (select extract(year from to_date(start_date,'YYYY-MM-DD')) year,
+        to_number(to_char(to_date(start_date,'YYYY-MM-DD'),'DDD')) doy, 
+        round(avg(chla),2) meanchla 
+    FROM env_data.globcolour_2023 a
+left join env_data.globcolour_spatial_lookup b on a.glob_id=b.glob_id
+where extract(month from to_date(start_date,'YYYY-MM-DD')) in (4, 5, 6)
+and NMFS_REP_AREA in ('610', '620', '630', '640', '650')
+and depth <= (-10)
+        group by  extract(year from to_date(start_date,'YYYY-MM-DD')),
+        to_number(to_char(to_date(start_date,'YYYY-MM-DD'),'DDD'))
+))
+SELECT
+    year,
+    'Spring_Chlorophylla_Peak_GOA_Satellite' as indicator_name,
+    doy data_value
+FROM ranked_data
+WHERE rn = 1"))
 
 #calculate indicator value
-mod_SPR_GOA_P <- mod_goa %>%
-  filter(NMFS_REP_AREA %in% c(610, 620, 630, 640, 650) & month %in% c(4:6) & depth<=(-10)) %>%
-  group_by(date) %>%
-  summarise(WEEKLY_VALUE=mean(chlorophyll,na.rm=TRUE))%>%
-  mutate(YEAR=year(date))%>%
-  group_by(YEAR)%>%
+glob_goa_pk2 <- readRDS("../../data/2023_combined/2023_for_akfin.RDS") %>%
+  left_join(readRDS("../../data/globcolour_spatial_lookup.RDS"),
+            by="glob_id") %>%
+  mutate(month=month(ymd(start_date))) %>%
+  filter(nmfs_rep_area %in% c(610, 620, 630, 640, 650) & month %in% c(4:6) & depth<=(-10)) %>%
+  group_by(start_date) %>%
+  summarise(WEEKLY_VALUE=mean(chla,na.rm=TRUE))%>%
   slice(which.max(WEEKLY_VALUE))%>%
-  mutate(DATA_VALUE=yday(date))%>%
-  mutate(INDICATOR_NAME=indicator)%>%
-  dplyr::select(c(YEAR, INDICATOR_NAME, DATA_VALUE))
+  mutate(DATA_VALUE=yday(start_date))
 
-write.csv(mod_SPR_GOA_P, "2022_indicators/Spring_Chlorophylla_Peak_GOA_Satellite.csv", row.names=FALSE)
+
 ```
+
+
 
 
 ## Spring_Chlorophylla_Biomass_WCGOA_Satellite
@@ -217,52 +182,116 @@ write.csv(mod_SPR_GOA_P, "2022_indicators/Spring_Chlorophylla_Peak_GOA_Satellite
 I used the same filters Jordan included in his github code, the values are close, but do not match perfectly.
 
 ```{r, warning=FALSE, message=FALSE}
-#define indicator
-indicator<-"Spring_Chlorophylla_Biomass_WCGOA_Satellite"
+glob_wcgoa <-dbFetch(dbSendQuery(con, "select extract(year from to_date(start_date,'YYYY-MM-DD')) year, 'Spring_Chlorophylla_Biomass_WCGOA_Satellite' as indicator_name, round(avg(chla),2) data_value, count(*) n_values
+from env_data.globcolour_2023 a
+left join env_data.globcolour_spatial_lookup b on a.glob_id=b.glob_id
+where extract(month from to_date(start_date,'YYYY-MM-DD')) = 5 
+and NMFS_REP_AREA in ('610', '620', '630')
+and depth <= (-10)
+and depth > (-200)
+group by extract(year from to_date(start_date,'YYYY-MM-DD'))
+order by extract(year from to_date(start_date,'YYYY-MM-DD')) asc
+"))
+  
+#calulcate from RDS files
+glob_wcgoa2 <- readRDS("../../data/2023_combined/2023_for_akfin.RDS") %>%
+  left_join(readRDS("../../data/globcolour_spatial_lookup.RDS"),
+            by="glob_id")%>%
+  mutate(month=month(ymd(start_date))) %>%
+  filter(nmfs_rep_area %in% c('610', '620', '630') & 
+           month%in%c(5) &
+           depth <= (-10) &
+           depth > (-200)) %>%
+  summarize(data_value=mean(chla), n_values=n())
 
-#calculate indicator value
-mod_SPR_WCGOA_B <- mod_goa %>%
-  mutate(YEAR=year) %>%
-  filter(NMFS_REP_AREA %in% c(610, 620, 630) & month==5 & depth<(-10) & depth>(-200)) %>%
-  group_by(YEAR) %>%
-  summarise(DATA_VALUE=mean(chlorophyll,na.rm=TRUE))%>%
-  mutate(INDICATOR_NAME=indicator)%>%
-  dplyr::select(c(YEAR, INDICATOR_NAME, DATA_VALUE))
-
-#write csv
-write.csv(mod_SPR_WCGOA_B, "2022_indicators/Spring_Chlorophylla_Biomass_WCGOA_Satellite.csv", row.names=FALSE)
 
 ```
 
 ## Spring_Chlorophylla_Peak_WCGOA_Satellite
 
 ```{r}
-#define indicator
-indicator<-"Spring_Chlorophylla_Peak_WCGOA_Satellite"
-#MODIS
-#recalculate indicator
-mod_SPR_WCGOA_P <- mod_goa %>%
-  filter(NMFS_REP_AREA %in% c(610, 620, 630) & month %in% c(4:6) & depth<=(-10) & depth>=(-200)) %>%
-  group_by(date) %>%
-  summarise(WEEKLY_VALUE=mean(chlorophyll,na.rm=TRUE))%>%
-  mutate(YEAR=year(date))%>%
-  group_by(YEAR)%>%
+
+glob_wcgoa_pk <-dbFetch(dbSendQuery(con, "WITH ranked_data AS (
+    SELECT
+         year,
+         doy,
+        meanchla,
+        ROW_NUMBER() OVER (PARTITION BY year ORDER BY meanchla DESC) AS rn
+        from (select extract(year from to_date(start_date,'YYYY-MM-DD')) year,
+        to_number(to_char(to_date(start_date,'YYYY-MM-DD'),'DDD')) doy, 
+        round(avg(chla),2) meanchla 
+    FROM env_data.globcolour_2023 a
+left join env_data.globcolour_spatial_lookup b on a.glob_id=b.glob_id
+where extract(month from to_date(start_date,'YYYY-MM-DD')) in (4, 5, 6)
+and NMFS_REP_AREA in ('610', '620', '630')
+and depth <= (-10)
+and depth >= (-200)
+        group by  extract(year from to_date(start_date,'YYYY-MM-DD')),
+        to_number(to_char(to_date(start_date,'YYYY-MM-DD'),'DDD'))
+))
+SELECT
+    year,
+    'Spring_Chlorophylla_Peak_GOA_Satellite' as indicator_name,
+    doy data_value
+FROM ranked_data
+WHERE rn = 1"))
+
+glob_wcgoa_pk <- readRDS("../../data/2023_combined/2023_for_akfin.RDS") %>%
+  left_join(readRDS("../../data/globcolour_spatial_lookup.RDS"),
+            by="glob_id") %>%
+  mutate(month=month(ymd(start_date))) %>%
+  filter(nmfs_rep_area %in% c('610', '620', '630') & month %in% c(4:6) & depth<=(-10) & depth>=(-200)) %>%
+  group_by(start_date) %>%
+  summarise(WEEKLY_VALUE=mean(chla,na.rm=TRUE))%>%
   slice(which.max(WEEKLY_VALUE))%>%
-  mutate(DATA_VALUE=yday(date))%>%
-  mutate(INDICATOR_NAME=indicator)%>%
-  dplyr::select(c(YEAR, INDICATOR_NAME, DATA_VALUE))
-
-
-#write csv
-write.csv(mod_SPR_WCGOA_P, "2022_indicators/Spring_Chlorophylla_Peak_WCGOA_Satellite.csv", row.names=FALSE)
+  mutate(DATA_VALUE=yday(start_date))
 ```
 
 ## quickly plot chla indicators
 ```{r}
+
+
+#combine data
+glob_indicators<-glob_goa %>%
+  bind_rows(glob_wcgoa) %>%
+  bind_rows(glob_AMJ_SEBS) %>%
+  bind_rows(glob_BBRKC) %>%
+  bind_rows(glob_stmatt)
+
+#pull viirs indicators from chl-indicator-comparison/2023_viirs_esp_indicators.R
+viirs<-readRDS("data/viirs_indicators_2023.RDS")
+
+
+plotfun<-function(indy) {
+  ggplot()+
+    geom_line(data=glob_indicators%>%filter(INDICATOR_NAME==indy),
+              aes(x=YEAR, y=DATA_VALUE, color="black"))+
+    geom_line(data=viirs%>%filter(indicator_name==indy),
+              aes(x=year, y=mean_viirs, color="red"))+
+    scale_color_manual(name= "",values=c("black"="black", "red"="red"), labels=c("globcolour","viirs"))+
+    ggtitle(paste0(indy))+
+    theme_bw()
+    
+}
+
+  
+indicators<-unique(glob_indicators$INDICATOR_NAME)
+
+for (indy in indicators) {
+ plot <- plotfun(indy)
+  png_file <- paste0("ESP/2023_indicators/qaplots/", indy, ".png")
+  ggsave(filename = png_file, plot = plot, width = 6, height = 4, units = "in")
+}
+
+plotfun("Spring_Chlorophylla_Biomass_GOA_Satellite")
+
+lapply(indicators, )
+
 ggplot()+
-  geom_line(data=mod_SPR_WCGOA_P, aes(x=YEAR, y=DATA_VALUE))+
-  geom_line(data=mod_SPR_GOA_P, aes(x=YEAR, y=DATA_VALUE), color="red")+
-  ggtitle("Peak chla: red=GOA, black=WCGOA")
+  geom_line(data=goa, aes(x=YEAR, y=DATA_VALUE))+
+  facet_wrap(~INDICATOR_NAME)+
+  ggtitle("GOA ESP BIOMASS INDICATORS")+
+  theme_bw()
 
 ggplot()+
   geom_line(data=mod_SPR_WCGOA_B, aes(x=YEAR, y=DATA_VALUE))+
