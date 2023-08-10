@@ -283,19 +283,5 @@ for (indy in indicators) {
   ggsave(filename = png_file, plot = plot, width = 6, height = 4, units = "in")
 }
 
-plotfun("Spring_Chlorophylla_Biomass_GOA_Satellite")
-
-lapply(indicators, )
-
-ggplot()+
-  geom_line(data=goa, aes(x=YEAR, y=DATA_VALUE))+
-  facet_wrap(~INDICATOR_NAME)+
-  ggtitle("GOA ESP BIOMASS INDICATORS")+
-  theme_bw()
-
-ggplot()+
-  geom_line(data=mod_SPR_WCGOA_B, aes(x=YEAR, y=DATA_VALUE))+
-  geom_line(data=mod_SPR_GOA_B, aes(x=YEAR, y=DATA_VALUE), color="red")+
-  ggtitle("Chla biomass: red=GOA, black=WCGOA")
 ```
 
