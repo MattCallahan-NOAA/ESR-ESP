@@ -17,21 +17,21 @@ OceansBlue2='#0055A4' # darker blue used for strip.background
 con <- dbConnect(odbc::odbc(), "akfin", UID=getPass(msg="USER NAME"), PWD=getPass()) 
 
 #load data with depth, season, and region filters
-data<-dbFetch(dbSendQuery(con, "select round(avg(chla),2) meanchla, start_date, ecosystem_subarea
+data<-dbFetch(dbSendQuery(con, "select round(avg(chla),2) meanchla, to_date(start_date,'YYYY-MM-DD')+4 mid_date, ecosystem_subarea
 from env_data.globcolour_2023 a
 left join env_data.globcolour_spatial_lookup b on a.glob_id=b.glob_id
-where extract(month from to_date(start_date,'YYYY-MM-DD')) in (4, 5, 6)
+where extract(month from to_date(start_date,'YYYY-MM-DD')+4) in (4, 5, 6)
 and ecosystem_area = ('Gulf of Alaska')
 and waters_cod = 'FED'
 and depth>(-200)
 and depth<(-10)
-group by start_date, ecosystem_subarea"))%>%
+group by to_date(start_date,'YYYY-MM-DD')+4, ecosystem_subarea"))%>%
   rename_with(tolower)
 
 data <-  data%>%
-  mutate(month=month(start_date),
-         year=year(start_date),
-         doy=yday(start_date),
+  mutate(month=month(mid_date),
+         year=year(mid_date),
+         doy=yday(mid_date),
          ecosystem_subarea=fct_relevel(ecosystem_subarea,"Western Gulf of Alaska","Eastern Gulf of Alaska"))
 
 #  Prepare data for chlorophyll spring average plot.
