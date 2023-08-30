@@ -78,5 +78,65 @@ and b.state_fed = 'FED'
 and b.depth>(-200)
 and b.depth<(-10)
 and b.jens_grid>=0
-group by read_date, jens_grid "))
+group by read_date, jens_grid "))%>%
+  rename_with(tolower)
 
+
+#merge based on nearest date
+#create a lookup datable of daily vs 8 day data
+glob_day_week_lookup <- function(year) {data.frame(
+  seq(from=as.Date(paste0(year,"-04-01")), to=as.Date(paste0(year,"-06-30")), by=1),
+  c(rep(as.Date(paste0(year, "-04-03")), 6), #
+    rep(seq(from=as.Date(paste0(year,"-04-11")), to=as.Date(paste0(year,"-06-22")), by=8), each=8),
+    rep(as.Date(paste0(year, "-06-30")),5)
+  ))}
+
+#test<-glob_day_week_lookup(2023)
+maxyear<-max(year(glob$mid_date))
+
+dates_lkp<-lapply(1998:maxyear, FUN=function(x) {glob_day_week_lookup(x)})%>%
+  bind_rows()
+
+colnames(dates_lkp) <- c("date", "day8")
+
+# Assign each date in daily ice data a corresponding 8 day date from globclour data
+ice2<-ice%>%
+  mutate(date=as.Date(read_date))%>%
+  left_join(dates_lkp, by="date")
+
+
+# Average ice faction by globcolour date
+ice2<-ice2%>%
+  group_by(day8, jens_grid)%>%
+  summarize(mean_ice=round(mean(ice_fraction),2))
+
+# More ice2 than glob is expected since ice data isn't limited by cloud cover
+
+# Join average ice to chla data
+glob2<-glob%>%
+  mutate(mid_date=as.Date(mid_date))%>%
+  left_join(ice2, by=c("mid_date"="day8", "jens_grid"="jens_grid"))
+
+
+## QA
+#let's check this for a random date and jens_area: May 13 2006 in jens 400
+glob_ice_test<-dbFetch(dbSendQuery(con, "select round(avg(a.sea_ice_fraction),2) ice_fraction, a.read_date, b.jens_grid
+from afsc.erddap_crw_sst a
+left join env_data.crw_lookup_with_jens_grid b on a.crw_id=b.crw_id
+where extract(month from a.read_date) =5
+and extract(year from a.read_date) =2006
+and b.ecosystem = 'Eastern Bering Sea'
+and b.state_fed = 'FED'
+and b.depth>(-200)
+and b.depth<(-10)
+and b.jens_grid = '400'
+group by read_date, jens_grid "))%>%
+  rename_with(tolower)
+
+test_5_13<-glob_ice_test%>%
+  filter(read_date>=as.Date("2006-05-09") & read_date<as.Date("2006-05-17"))
+mean(test_5_13$ice_fraction) #0.17
+
+glob2%>%
+  filter(jens_grid=='400' & mid_date==as.Date("2006-05-13")) #0.17
+#matches up
