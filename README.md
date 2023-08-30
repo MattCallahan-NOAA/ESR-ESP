@@ -4,3 +4,5 @@ This repo contains code for satellite derived environmental indicators used in t
 I organized this repo by data type (SST and Chla so far), with ESP and ESR subfolders in each.
 
 Shout out to Jordan Watson who originally developed much of this code.
+
+Shout out to Matt Callahan for doing a ton of work! 
