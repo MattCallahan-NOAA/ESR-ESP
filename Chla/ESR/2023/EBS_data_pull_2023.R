@@ -8,21 +8,27 @@ library(sf)
 
 # pull data from akfin
 #connect to akfin
-con <- dbConnect(odbc::odbc(), "akfin", UID=getPass(msg="USER NAME"), PWD=getPass()) 
+#con <- dbConnect(odbc::odbc(), "akfin", UID=getPass(msg="USER NAME"), PWD=getPass()) 
+con <- dbConnect(odbc::odbc(), "akfin",  UID="JNIELSEN", PWD=getPass())
 
 #load data with depth, season, and region filters
-glob<-dbFetch(dbSendQuery(con, "select round(avg(chla),2) meanchla, to_date(start_date,'YYYY-MM-DD')+4 mid_date, jens_grid
+glob<-dbFetch(dbSendQuery(con, "select round(avg(chla),2) meanchla, to_date(start_date,'YYYY-MM-DD')+4 mid_date, jens_grid, bsierp_id,bsierp_super_region 
 from env_data.globcolour_2023 a
 left join env_data.globcolour_spatial_lookup b on a.glob_id=b.glob_id
-where extract(month from to_date(start_date,'YYYY-MM-DD')+4) in (4, 5, 6)
+where extract(month from to_date(start_date,'YYYY-MM-DD')+4) in (1,2,3,4, 5, 6)
 and ecosystem_area = ('Eastern Bering Sea')
 and waters_cod = 'FED'
 and depth>(-200)
 and depth<(-10)
 and jens_grid>=0
-group by to_date(start_date,'YYYY-MM-DD')+4, jens_grid"))%>%
+group by to_date(start_date,'YYYY-MM-DD')+4, jens_grid,bsierp_id,bsierp_super_region "))%>%
   rename_with(tolower)
 
+head(glob)
+saveRDS(glob,file='inter_jens_datafiles/globcolour_23augSQL.RDS')
+
+
+table(glob$bsierp_id)
 ##Get sea ice data
 # # this is the code used to add Jens' grid to the crw lookup table
 # # download crw lookup table
@@ -71,7 +77,7 @@ group by to_date(start_date,'YYYY-MM-DD')+4, jens_grid"))%>%
 ice<-dbFetch(dbSendQuery(con, "select round(avg(a.sea_ice_fraction),2) ice_fraction, a.read_date, b.jens_grid
 from afsc.erddap_crw_sst a
 left join env_data.crw_lookup_with_jens_grid b on a.crw_id=b.crw_id
-where extract(month from a.read_date) in (4, 5, 6)
+where extract(month from a.read_date) in (3,4, 5, 6)
 and extract(year from a.read_date) >1997
 and b.ecosystem = 'Eastern Bering Sea'
 and b.state_fed = 'FED'
@@ -82,6 +88,11 @@ group by read_date, jens_grid "))%>%
   rename_with(tolower)
 
 
+seq(from=as.Date(paste0(2018,"-01-01")), to=as.Date(paste0(2018,"-06-30")), by=1)
+c(rep(as.Date(paste0(2018, "-04-03")), 6))
+
+
+
 #merge based on nearest date
 #create a lookup datable of daily vs 8 day data
 glob_day_week_lookup <- function(year) {data.frame(
@@ -90,6 +101,11 @@ glob_day_week_lookup <- function(year) {data.frame(
     rep(seq(from=as.Date(paste0(year,"-04-11")), to=as.Date(paste0(year,"-06-22")), by=8), each=8),
     rep(as.Date(paste0(year, "-06-30")),5)
   ))}
+
+
+
+hm<-glob_day_week_lookup(2018)
+
 
 #test<-glob_day_week_lookup(2023)
 maxyear<-max(year(glob$mid_date))

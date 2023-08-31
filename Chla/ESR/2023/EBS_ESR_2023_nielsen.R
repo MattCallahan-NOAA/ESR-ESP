@@ -215,6 +215,9 @@ test_mer$chlorophyll<-test_mer$chlorophyll.x
 color_filler<-rep(c(rep('dodgerblue',19),'blue'),8) # fix here - when more years are added # 
 
 
+
+
+
 fig2<- test_mer %>% 
   ggplot() + 
   geom_bar(aes(year,chlorophyll),stat="identity",fill=color_filler) +
