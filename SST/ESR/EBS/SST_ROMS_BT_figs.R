@@ -140,7 +140,7 @@ mylegy <- 0.865
 ####-------------------------------------------------------------####
 
 #  Define the Bering Sea dataset
-BSupdateddata <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Southeastern%20Bering%20Sea,Northern%20Bering%20Sea&start_date=19850101&end_date=20220807'), type = "application/json") %>% 
+BSupdateddata <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Southeastern%20Bering%20Sea,Northern%20Bering%20Sea&start_date=19850101&end_date=20231231'), type = "application/json") %>% 
   bind_rows %>% 
   mutate(date=as_date(READ_DATE)) %>% 
   data.frame %>% 
@@ -301,9 +301,9 @@ SSTupdate<- dbFetch(
 inner join afsc.erddap_crw_sst_spatial_lookup lkp
 on sst.CRW_ID=lkp.id
 where ecosystem='Eastern Bering Sea'
-and read_date > to_date('09 sep 2021 12:00:00', 'dd mon yyyy hh:mi:ss')
-and read_date < to_date('08 aug 2022 12:00:00', 'dd mon yyyy hh:mi:ss')")) 
-saveRDS(SSTupdate, "EBS/Data/2022update_raw.RDS")
+and read_date > to_date('01 sep 2022 12:00:00', 'dd mon yyyy hh:mi:ss')
+and read_date < to_date('01 sep 2023 12:00:00', 'dd mon yyyy hh:mi:ss')")) 
+saveRDS(SSTupdate, "EBS/Data/2023update_raw.RDS")
 #oops forgot a few rows
 bonus<- dbFetch(
   dbSendQuery(con,"select read_date, crw_id, temp, ecosystem_sub, depth from AFSC.erddap_crw_sst sst
@@ -582,10 +582,10 @@ end-start
 #save
 sst_domains%>%
   rename_with(tolower)%>%
-  saveRDS("EBS/Data/sst_in_min_out_2022.RDS")
+  saveRDS("EBS/Data/sst_in_min_out_2023.RDS")
 #prepare data for plotting
-sst_domains<-readRDS("EBS/Data/sst_in_min_out_2022.RDS")%>%
-  filter(read_date<="2022-08-31 12:00:00")%>%
+sst_domains<-readRDS("EBS/Data/sst_in_min_out_2023.RDS")%>%
+  filter(read_date<="2023-08-31 12:00:00")%>%
   mutate(eco_short=ifelse(ecosystem_sub=="Northern Bering Sea", "NBS", "SEBS"),
          eco2=paste(eco_short, domain),
          month=month(read_date),
@@ -631,12 +631,17 @@ pb4 <- ggplot() +
         axis.title.y = element_text(size=20,family="sans"),
         axis.text.y = element_text(size=16,family="sans"),
         panel.border=element_rect(colour="black",size=0.75),
+        axis.text.x=element_text(size=20, color=c("black",NA,NA,"black",NA,NA,"black",NA,NA,"black",NA,NA,NA)),
         #axis.text.x=element_text(size=20, color=c("black",NA,NA,"black",NA,NA,"black",NA,NA,"black",NA,NA,NA)),
-        axis.text.x=element_blank(),
+        #axis.text.x=element_blank(),
         axis.title.x=element_blank(),
         legend.key.size = unit(0.35,"cm"),
         plot.margin=unit(c(0,0.5,0.5,0.5),"cm")) 
 pb4
+png("EBS/2023/ebs_domains_2023.png", height=24, width=30, units="cm", res=300)
+pb4
+dev.off()
+
 
 #ROMS
 ROMSdata3<-ROMS %>% 

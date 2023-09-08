@@ -32,10 +32,10 @@ mytheme <- theme(strip.text = element_text(size=10,color="white",family="sans",f
                  legend.key.size = unit(1,"line"))
 
 #specify ESR year
-current.year <- 2022
+current.year <- 2023
 last.year <- current.year-1
 
-newdat <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Southeastern%20Bering%20Sea,Northern%20Bering%20Sea&start_date=19850101&end_date=20221231'), type = "application/json") %>% 
+newdat <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Southeastern%20Bering%20Sea,Northern%20Bering%20Sea&start_date=19850101&end_date=20231231'), type = "application/json") %>% 
   bind_rows %>% 
   mutate(date=as_date(READ_DATE)) %>% 
   data.frame %>% 
@@ -61,7 +61,7 @@ mymean <- newdat %>%
          sdheat=sd(cumheat[between(year2,1986,2015)]),
          anomaly=cumheat-meanheat)
 
-png("EBS/2022/Callahan_Fig1.png",width=6,height=3.375,units="in",res=300)
+png("EBS/2023/Callahan_Fig1.png",width=6,height=3.375,units="in",res=300)
 mymean %>% 
   ggplot(aes(year2,anomaly)) +
   geom_bar(stat="identity",fill=OceansBlue2) + 
@@ -79,7 +79,7 @@ dev.off()
 #  Create Figure 2. Total cumulative sea surface temperature (sum of daily temperatures) for each year, apportioned
 #  by season: summer (Jun–Aug), fall (Sept–Nov), winter (Dec–Feb), spring (Mar–May). Negative
 #  values are the result of sea surface temperatures below zero
-png("EBS/2022/Callahan_Fig2.png",width=6,height=4,units="in",res=300)
+png("EBS/2023/Callahan_Fig2.png",width=6,height=4,units="in",res=300)
 newdat %>% 
   filter(year2>1985) %>% 
   mutate(Season=case_when(
@@ -108,7 +108,7 @@ newdat %>%
 dev.off()
 
 #line for tyler
-png("EBS/2022/Callahan_Fig2_line.png",width=6,height=4,units="in",res=300)
+png("EBS/2023/Callahan_Fig2_line.png",width=6,height=4,units="in",res=300)
 newdat %>% 
   filter(year2>1985) %>% 
   mutate(Season=case_when(
@@ -195,8 +195,8 @@ mytheme2 <- theme(strip.text = element_text(size=10,color="white",family="sans",
 
 #png("SST_ESR/2020/EBS/Watson_Fig5_010421.png",width=7,height=5,units="in",res=   300)
 #Update date in this figure!
-png("EBS/2022/Callahan_Fig3.png",width=7,height=5,units="in",res=300)
-ggplot(data = clim_cat %>% filter(t>=as.Date("2019-09-01")), aes(x = t, y = temp)) +
+png("EBS/2023/Callahan_Fig3.png",width=7,height=5,units="in",res=300)
+ggplot(data = clim_cat %>% filter(t>=as.Date("2020-09-01")), aes(x = t, y = temp)) +
   geom_flame(aes(y2 = thresh, fill = "Moderate")) +
   geom_flame(aes(y2 = thresh_2x, fill = "Strong")) +
   geom_flame(aes(y2 = thresh_3x, fill = "Severe")) +
@@ -216,7 +216,8 @@ ggplot(data = clim_cat %>% filter(t>=as.Date("2019-09-01")), aes(x = t, y = temp
   labs(y = "Sea Surface Temperature (°C)", x = NULL) + 
  # theme(legend.position="none") +
   facet_wrap(~region,ncol=1,scales="free_y") +
-  mytheme2 
+  mytheme2+
+  theme(legend.position=c(0.18,0.85))
 dev.off()
 
 
@@ -249,7 +250,7 @@ mylegy <- 0.865
 mean.years <- 1985:2014
 mean.lab <- "Mean 1985-2014"
 
-png("EBS/2022/Callahan_Fig4.png",width=7,height=5,units="in",res=300)
+png("EBS/2023/Callahan_Fig4.png",width=7,height=5,units="in",res=300)
 ggplot() +
   geom_line(data=newdat %>% filter(year2<last.year),
             aes(newdate,meansst,group=factor(year2),col='mygrey'),size=0.3) +

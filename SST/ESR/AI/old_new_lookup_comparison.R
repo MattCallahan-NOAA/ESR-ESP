@@ -26,16 +26,23 @@ mytheme <- theme(strip.text = element_text(size=10,color="white",family="sans",f
                  axis.title = element_text(size=10,family="sans",color="black"),
                  axis.text = element_text(size=10,family="sans",color="black"),
                  panel.border=element_rect(colour="black",fill=NA,size=0.5),
-                # panel.background = element_blank(),
+                 # panel.background = element_blank(),
                  plot.margin=unit(c(0.65,0,0.65,0),"cm"),
                  legend.position=c(0.6,0.7),
                  legend.background = element_blank(),
                  legend.key.size = unit(1,"line"))
 
 
-data <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Western%20Aleutians,Central%20Aleutians,Eastern%20Aleutians&start_date=19850101&end_date=20251231'), type = "application/json") %>% 
-  bind_rows %>% 
-  mutate(date=as_date(READ_DATE)) %>% 
+#connect to AKFIN
+con <- dbConnect(odbc::odbc(), "akfin", UID=getPass(msg="USER NAME"), PWD=getPass())
+
+#query by heatwave category
+data<- dbFetch(dbSendQuery(con,
+                              paste0("select * from afsc.time_series_regional_avg_temp_crw_old
+                                     where ECOSYSTEM_SUB in ('Western Aleutians','Central Aleutians','Eastern Aleutians')")))
+
+data<-data %>%  
+mutate(date=as_date(READ_DATE)) %>% 
   data.frame %>% 
   dplyr::select(date,meansst=MEANSST,esr_region=ECOSYSTEM_SUB) %>% 
   mutate(doy=yday(date),
@@ -235,11 +242,11 @@ fillColCat <- c(
 )
 
 mytheme2 <- theme(strip.text = element_text(size=10,color="white",family="sans",face="bold"),
-                 strip.background = element_rect(fill=OceansBlue2),
-                 axis.title = element_text(size=10,family="sans",color="black"),
-                 axis.text = element_text(size=10,family="sans",color="black"),
-                 panel.border=element_rect(colour="black",fill=NA,size=0.5))
-        
+                  strip.background = element_rect(fill=OceansBlue2),
+                  axis.title = element_text(size=10,family="sans",color="black"),
+                  axis.text = element_text(size=10,family="sans",color="black"),
+                  panel.border=element_rect(colour="black",fill=NA,size=0.5))
+
 
 png("AI/2023/Figure_3_Flames.png",width=7,height=5,units="in",res=300)
 ggplot(data = clim_cat %>% filter(t>=as.Date("2020-12-01")), aes(x = t, y = temp)) +
@@ -260,25 +267,25 @@ ggplot(data = clim_cat %>% filter(t>=as.Date("2020-12-01")), aes(x = t, y = temp
   scale_fill_manual(name = "Heatwave\nIntensity", values = fillColCat, labels=c("Moderate","Strong","Severe","Extreme")) +
   scale_x_date(date_labels = "%b %Y",expand=c(0.01,0)) +
   guides(color="none")+
- # guides(colour = guide_legend(override.aes = list(linetype = c("solid", "solid", "dotted",
- #                                                               "dotted"#, "dotted", "dotted"
+  # guides(colour = guide_legend(override.aes = list(linetype = c("solid", "solid", "dotted",
+  #                                                               "dotted"#, "dotted", "dotted"
   #),
- # size = c(0.6, 0.7, 0.7, 0.7#, 0.7, 0.7
- # )),
+  # size = c(0.6, 0.7, 0.7, 0.7#, 0.7, 0.7
+  # )),
   #ncol=6)) +
   labs(y = "Sea Surface Temperature (°C)", x = NULL) + 
- # theme(legend.position="none") +
+  # theme(legend.position="none") +
   facet_wrap(~region,ncol=1,scales="free_y") +
   mytheme2 + 
   theme(legend.position=c(0.05,0.88),
-    #legend.key=element_blank(),
-    legend.text = element_text(size=7),
-    legend.key.size = unit(0.8,"line"),
-    legend.title = element_text(size=8),
-    axis.title.x=element_blank()
-   # legend.margin=margin(l=-6.25,t = -8.5, unit='cm'),
-   # plot.margin=unit(c(0.65,0,0.0,0),"cm")
-   )
+        #legend.key=element_blank(),
+        legend.text = element_text(size=7),
+        legend.key.size = unit(0.8,"line"),
+        legend.title = element_text(size=8),
+        axis.title.x=element_blank()
+        # legend.margin=margin(l=-6.25,t = -8.5, unit='cm'),
+        # plot.margin=unit(c(0.65,0,0.0,0),"cm")
+  )
 dev.off()
 
 #---------------------------------------------------------------------------------------------
@@ -288,6 +295,7 @@ dev.off()
 # the following year to aggregate winter data (e.g., Dec 2019 occurs with winter of 2020).
 
 mhw_wai <- (detect_event(ts2clm((data) %>%
+                                  filter(year<current.year)%>%
                                   filter(esr_region=="Western Aleutians") %>% 
                                   rename(t=read_date,temp=meansst) %>% 
                                   arrange(t), climatologyPeriod = c("1985-12-01", "2015-11-30"))))$event %>% 
@@ -295,6 +303,7 @@ mhw_wai <- (detect_event(ts2clm((data) %>%
   data.frame
 
 mhw_eai <- ((detect_event(ts2clm((data) %>%
+                                   filter(year<current.year)%>%
                                    filter(esr_region=="Eastern Aleutians") %>% 
                                    rename(t=read_date,temp=meansst) %>% 
                                    arrange(t), climatologyPeriod = c("1985-12-01", "2015-11-30"))))$event %>% 
@@ -302,16 +311,17 @@ mhw_eai <- ((detect_event(ts2clm((data) %>%
   data.frame
 
 mhw_cai <- ((detect_event(ts2clm((data) %>%
+                                   filter(year<current.year)%>%
                                    filter(esr_region=="Central Aleutians") %>% 
                                    rename(t=read_date,temp=meansst) %>% 
                                    arrange(t), climatologyPeriod = c("1985-12-01", "2015-11-30"))))$event %>% 
               mutate(region="Central Aleutians")) %>% 
   data.frame
 
-annualevents <- lapply(1:nrow(mhw_wai),function(x)data.frame(date=seq.Date(as.Date(mhw_nbs[x,"date_start"]),as.Date(mhw_nbs[x,"date_end"]),"days"))) %>% 
+annualevents <- lapply(1:nrow(mhw_wai),function(x)data.frame(date=seq.Date(as.Date(mhw_wai[x,"date_start"]),as.Date(mhw_wai[x,"date_end"]),"days"))) %>% 
   bind_rows() %>% 
   mutate(region="Western Aleutians") %>% 
-  bind_rows(lapply(1:nrow(mhw_eai),function(x)data.frame(date=seq.Date(as.Date(mhw_ebs[x,"date_start"]),as.Date(mhw_ebs[x,"date_end"]),"days"))) %>% 
+  bind_rows(lapply(1:nrow(mhw_eai),function(x)data.frame(date=seq.Date(as.Date(mhw_eai[x,"date_start"]),as.Date(mhw_eai[x,"date_end"]),"days"))) %>% 
               bind_rows() %>% 
               mutate(region="Eastern Aleutians")) %>% 
   bind_rows(lapply(1:nrow(mhw_cai),function(x)data.frame(date=seq.Date(as.Date(mhw_cai[x,"date_start"]),as.Date(mhw_cai[x,"date_end"]),"days"))) %>% 
@@ -468,4 +478,41 @@ ggplot()+
             aes(x=read_date, y=meansst, color=esr_region))+
   xlab("date")+ylab("mean sst 2023")+
   theme_bw()
-    
+
+
+# 
+
+data %>% filter (read_date == "2022-04-03" & 
+                   esr_region=="Eastern Aleutians")
+
+
+##plot lookups
+# old lookup
+oldlkp<-dbFetch(dbSendQuery(con, "select * from afsc.erddap_crw_sst_spatial_lookup_20210810"))
+
+newlkp<-dbFetch(dbSendQuery(con, "select * from afsc.erddap_crw_sst_spatial_lookup"))
+
+midlkp
+
+library(sf)
+library(akmarineareas2)
+
+oldai <-oldlkp %>%
+  rename_with(tolower) %>%
+  filter(ecosystem_sub %in% c("Western Aleutians","Central Aleutians","Eastern Aleutians")) %>%
+  st_as_sf(coords = c('longitude', 'latitude'), crs = 4326, agr = 'constant')%>%
+  st_transform(crs=3832)
+
+newai <-newlkp %>%
+  rename_with(tolower) %>%
+  filter(ecosystem_sub %in% c("Western Aleutians","Central Aleutians","Eastern Aleutians")) %>%
+  st_as_sf(coords = c('longitude', 'latitude'), crs = 4326, agr = 'constant')%>%
+  st_transform(crs=3832)
+
+ggplot()+
+  geom_sf(data=oldai, aes(colour=ecosystem_sub))+
+  geom_sf(data=newai, fill=NA, aes(colour=ecosystem_sub), alpha=0.2)+
+  scale_x_continuous(breaks = seq(-180,360, 10))
+
+
+  
