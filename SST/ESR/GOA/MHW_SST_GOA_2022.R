@@ -392,7 +392,8 @@ mhw_goa2%>%ggplot()+
    # reassign ice to no heatwave
     mhw_goa2$heatwave_category<-recode(mhw_goa2$heatwave_category, "I"="0")
     mhw_goa2$Intensity<-recode(mhw_goa2$heatwave_category, "0"="No heatwave", "1"="Moderate", "2"="Strong", "3"="Severe", "4"="Extreme")
-    mhw_goa2<-mhw_goa2%>%mutate(Intensity=fct_relevel(Intensity, c("No heatwave", "Moderate", "Strong", "Severe")))
+    mhw_goa2<-mhw_goa2%>%mutate(Intensity=fct_relevel(Intensity, c("No heatwave", "Moderate", "Strong"#, "Severe"
+                                                                   )))
     #calculate 5 day averages
     mhw_goa2_5<-mhw_goa2%>%
       group_by(ecosystem_sub, Intensity)%>%
