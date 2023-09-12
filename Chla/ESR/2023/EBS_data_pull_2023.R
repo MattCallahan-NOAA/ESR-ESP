@@ -77,19 +77,22 @@ table(glob$bsierp_id)
 ice<-dbFetch(dbSendQuery(con, "select round(avg(a.sea_ice_fraction),2) ice_fraction, a.read_date, b.jens_grid
 from afsc.erddap_crw_sst a
 left join env_data.crw_lookup_with_jens_grid b on a.crw_id=b.crw_id
-where extract(month from a.read_date) in (3,4, 5, 6)
+where extract(month from a.read_date) in (1,2,3,4, 5, 6,7)
 and extract(year from a.read_date) >1997
 and b.ecosystem = 'Eastern Bering Sea'
-and b.state_fed = 'FED'
 and b.depth>(-200)
 and b.depth<(-10)
 and b.jens_grid>=0
 group by read_date, jens_grid "))%>%
   rename_with(tolower)
 
+head(ice)
+saveRDS(ice,file='inter_jens_datafiles/icedata_for_retreat_timing_23augSQL.RDS')
 
-seq(from=as.Date(paste0(2018,"-01-01")), to=as.Date(paste0(2018,"-06-30")), by=1)
-c(rep(as.Date(paste0(2018, "-04-03")), 6))
+
+
+#seq(from=as.Date(paste0(2018,"-01-01")), to=as.Date(paste0(2018,"-06-30")), by=1)
+#c(rep(as.Date(paste0(2018, "-04-03")), 6))
 
 
 

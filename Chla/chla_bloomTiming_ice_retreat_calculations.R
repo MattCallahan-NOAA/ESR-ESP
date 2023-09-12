@@ -5,7 +5,7 @@ library(tidyverse)
 library(zoo)
 library(data.table)
 library(cmocean)
-
+library(forecast)
 
 
 p <- readRDS("inter_jens_datafiles/globcolour_23augSQL.RDS")
@@ -127,63 +127,70 @@ tail(bloom_df)
 #################################
 ### Calculation with ice data ###
 #################################
-is_23df<-readRDS("inter_jens_datafiles/Dummy_2023_ice_sst_ice_forGlob2019.RDS")
-head(is_23df)
-is_23df$a_ice<-is_23df$CRW_SEAICE
-is_23df$a_ice[is.na(is_23df$a_ice)]<-0 #
-is_23df$a_sst<-is_23df$CRW_SST
+gc()
+is<-readRDS("inter_jens_datafiles/icedata_for_retreat_timing_23augSQL.RDS")
+head(is) # is means ice in Danish
+is$a_ice<-is$ice_fraction           
+table(is.na(is$ice_fraction))
 
-# dummy create 2023
-is_23df$year<-rep(2023,nrow(is_23df))
+
+is$month=month(is$read_date )
+is$year=year(is$read_date )
+is$doy=yday(is$read_date )
+
+table(is$year)
+
+# 
+
 
 
 smoother_value_forecast<-8 # note here this is the daily data 
 
 
+head(is)
 
 
-
-is_23df<-is_23df %>% group_by(gridid_MS,year)  %>% arrange(doy) %>% mutate(a_ice = ifelse(a_ice>0.001, replace(a_ice, duplicated(CRW_SEAICE), NA), 0))
+is<-is %>% group_by(jens_grid,year)  %>% arrange(doy) %>% mutate(a_ice = ifelse(a_ice>0.001, replace(a_ice, duplicated(a_ice), NA), 0))
 
 # interpolating the ice data
-is_23df<-is_23df %>% group_by(gridid_MS,year)  %>% arrange(doy) %>% mutate(a_ice=ifelse(row_number()==1, mean(na.omit(a_ice)[1]), a_ice)) # first point
-is_23df<-is_23df %>% group_by(gridid_MS,year)  %>% arrange(doy) %>% mutate(a_ice=ifelse(row_number()==n(), last(na.omit(a_ice)), a_ice)) # last point
-is_23df<-is_23df %>% group_by(gridid_MS,year)  %>% arrange(doy) %>%   mutate(a_ice_int = na.approx(a_ice, na.rm=FALSE))
-is_23df<-is_23df %>% group_by(gridid_MS,year)  %>% arrange(doy) %>%   filter(!all(is.na(a_ice_int)))  %>%   mutate(a_ice_roll14 = forecast::ma(a_ice_int,order=smoother_value_forecast))
+is<-is %>% group_by(jens_grid,year)  %>% arrange(doy) %>% mutate(a_ice=ifelse(row_number()==1, mean(na.omit(a_ice)[1]), a_ice)) # first point
+is<-is %>% group_by(jens_grid,year)  %>% arrange(doy) %>% mutate(a_ice=ifelse(row_number()==n(), last(na.omit(a_ice)), a_ice)) # last point
+is<-is %>% group_by(jens_grid,year)  %>% arrange(doy) %>%   mutate(a_ice_int = na.approx(a_ice, na.rm=FALSE))
+is<-is %>% group_by(jens_grid,year)  %>% arrange(doy) %>%   filter(!all(is.na(a_ice_int)))  %>%   mutate(a_ice_roll14 = forecast::ma(a_ice_int,order=smoother_value_forecast))
 
 # spline estimator #
-
-# interpolating the temperature data
-is_23df<-is_23df %>% group_by(gridid_MS,year) %>% arrange(doy) %>% mutate(a_sst=ifelse(row_number()==1, mean(na.omit(a_sst)[1]), a_sst)) # first point
-is_23df<-is_23df %>% group_by(gridid_MS,year) %>% arrange(doy) %>% mutate(a_sst=ifelse(row_number()==n(), last(na.omit(a_sst)), a_sst)) # last point
-is_23df<-is_23df %>% group_by(gridid_MS,year) %>% arrange(doy)%>%   mutate(a_sst_int = na.approx(a_sst, na.rm=FALSE))
-is_23df<-is_23df %>% group_by(gridid_MS,year) %>% arrange(doy) %>%   filter(!all(is.na(a_sst_int)))  %>%   mutate(a_sst_roll14 = forecast::ma(a_sst_int,order=smoother_value_forecast))
-
 
 ##########################
 ### ice retreat timing ###
 ##########################
-ice_ret_15 <- is_23df %>% group_by(gridid_MS,year)  %>% arrange(doy,decreasing = TRUE)  %>% filter(doy<181) %>%  filter(a_ice_roll14 > 0.15)%>%
+ice_ret_15 <- is %>% group_by(jens_grid,year)  %>% arrange(doy,decreasing = TRUE)  %>% filter(doy<181) %>%  filter(a_ice_roll14 > 0.15)%>%
   summarize(ice_retr_roll15 = max(doy))
 
-
-ice_df<-is_23df %>%
-  full_join(ice_ret_15, by=c('gridid_MS','year')) 
-
-
-ave_ice_spring_toPeak <- ice_df %>% group_by(gridid_MS,year)   %>% filter(doy>29 & doy<ice_retr_roll15) %>%  summarize(mean_ice_frac = mean(a_ice_roll14,na.rm=T))
+unique_jens_grids<-unique(is$jens_grid)
+dummy_fill<-expand.grid(unique_jens_grids,c(1998:2023))
+colnames(dummy_fill)<-c('jens_grid','year')
 
 
-###
-### ssst this can be skipped # 
-###
-sst_df<-is_23df %>% group_by(gridid_MS,doy) %>% arrange(doy)%>% filter(doy>90 & doy<152) %>% mutate(avg_grid_SST = mean(a_sst_int,na.rm=T))
-sst_df_sum<- sst_df %>%   group_by(gridid_MS,year) %>% arrange(doy)%>% filter(doy>90 & doy<152) %>% summarise(cum_anomSST =sum( (a_sst_int-avg_grid_SST),na.rm=T))
+ice_df<-is %>%
+  full_join(ice_ret_15, by=c('jens_grid','year')) 
 
-comb_df<- sst_df_sum %>% full_join(ave_ice_spring_toPeak,by=c('gridid_MS','year')) %>% 
-  full_join(ice_ret_15,by=c('gridid_MS','year'))
 
+ave_ice_spring_toPeak <- ice_df %>% group_by(jens_grid,year)   %>% filter(doy>29 & doy<ice_retr_roll15) %>%  summarize(mean_ice_frac = mean(a_ice_roll14,na.rm=T))
+
+
+
+comb_df<- ave_ice_spring_toPeak  %>% 
+  full_join(ice_ret_15,by=c('jens_grid','year')) %>% 
+  full_join(dummy_fill, by=c('jens_grid','year')) # this adds all the na ice retreat / ice frac - we can them give them a zero
+
+
+comb_df$mean_ice_frac[is.na(comb_df$mean_ice_frac)]<-0
+comb_df$ice_retr_roll15[is.na(comb_df$ice_retr_roll15)]<-0
+table(is.na(comb_df$mean_ice_frac))
+table(is.na(comb_df$ice_retr_roll15))
 head(comb_df)
+
+saveRDS(comb_df,file='inter_jens_datafiles/iceRetreatTiming_1998_2023.RDS')
 
 
 #####
