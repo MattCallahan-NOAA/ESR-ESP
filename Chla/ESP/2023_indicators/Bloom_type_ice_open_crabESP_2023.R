@@ -5,19 +5,16 @@ library(data.table)
 library(cmocean)
 
 
-
-
-f23<-readRDS(file='Chla/bloom_ice_retreat_timing_upto23.RDS')
-
-
+# 
+f23 <- readRDS("inter_jens_datafiles/bloomTimingGlob_1998_2023.RDS")
+head(bs)
 head(f23)
 # crop for Erins paper - we might still need to fix this # 
-E<- f23[f23$gridid_MS  %in% c(39,62:64,84:88,103:112,125:135,147:153, 170:175,193:196,215:218,237:241,
+E<- f23[f23$jens_grid   %in% c(39,62:64,84:88,103:112,125:135,147:153, 170:175,193:196,215:218,237:241,
                          260:264,281:288,304:311,327:334,350:358,374:381,398:405,422:428,446:450,470:473,494:495),]
 
 
 E$north_south<-'north'
-
 E$north_south[E$lat<60.0001]<-'south'
 
 library(data.table)

@@ -7,12 +7,19 @@ library(data.table)
 library(cmocean)
 
 
-p<-readRDS('inter_jens_datafiles/dummy2023_grid_chla_forESR_prep.RDS')
-head(p)
 
-p$year<-rep(2023,nrow(p)) # hack to create 2023
-p<-p[p$depth<(-19.9),]
-p<-p[p$depth>(-200.01),]
+p <- readRDS("inter_jens_datafiles/globcolour_23augSQL.RDS")
+
+
+#p<-readRDS('inter_jens_datafiles/dummy2023_grid_chla_forESR_prep.RDS')
+head(p)
+tail(p)
+
+
+p$month=month(p$mid_date)
+p$year=year(p$mid_date)
+p$doy=yday(p$mid_date)
+
 
 ##
 ## calculation of bloom timing - still need to fix the data - but here is the code
@@ -23,13 +30,14 @@ p<-p[p$depth>(-200.01),]
 # assign data to the "gridid_MS grid first and then calc bloom timing 
 # p would be the input data. 
 
-grid_dummy<-data.frame(expand.grid(c(unique(p$gridid_MS)), doy=unique(p$doy),year=unique(p$year)))
-colnames(grid_dummy)<-c('gridid_MS','doy','year')
+grid_dummy<-data.frame(expand.grid(c(unique(p$jens_grid)), doy=unique(p$doy),year=unique(p$year)))
+colnames(grid_dummy)<-c('jens_grid','doy','year')
 head(grid_dummy)
+tail(grid_dummy)
 ##################################
 ### Cleaning up the cycle data ###
 ##################################
-df<-merge(p, grid_dummy,by=c('doy','gridid_MS','year'), all=TRUE)
+df<-merge(p, grid_dummy,by=c('doy','jens_grid','year'), all=TRUE)
 df<-df[order(as.numeric(df$doy)),]
 head(df)
 
@@ -39,19 +47,21 @@ head(df)
 head(df)
 smoother_value_forecast<-1
 
+
+df$log_chl<-log(df$meanchla+1)
 # log all values #
 df$a_chlorophyll_log<-df$log_chl
 df$a_chlorophyll_log[df$doy<60]<-NA # set
 
 # interpolating the chla data
-df<-df %>%   group_by(gridid_MS,year)  %>% arrange(doy) %>% mutate(a_chlorophyll_log=ifelse(row_number()==1, 0.1, a_chlorophyll_log)) # first point
-df<-df %>%   group_by(gridid_MS,year) %>% arrange(doy) %>% mutate(a_chlorophyll_log=ifelse(row_number()==n(), 0.1, a_chlorophyll_log)) # last point
-df<-df %>%   group_by(gridid_MS,year) %>% arrange(doy)%>%   mutate(a_chlorophyll_log_int = na.approx(a_chlorophyll_log, na.rm=FALSE))
+df<-df %>%   group_by(jens_grid,year)  %>% arrange(doy) %>% mutate(a_chlorophyll_log=ifelse(row_number()==1, 0.1, a_chlorophyll_log)) # first point
+df<-df %>%   group_by(jens_grid,year) %>% arrange(doy) %>% mutate(a_chlorophyll_log=ifelse(row_number()==n(), 0.1, a_chlorophyll_log)) # last point
+df<-df %>%   group_by(jens_grid,year) %>% arrange(doy)%>%   mutate(a_chlorophyll_log_int = na.approx(a_chlorophyll_log, na.rm=FALSE))
 ## # 14 day roll average - not weighted
-df<-df %>%   group_by(gridid_MS,year) %>% arrange(doy) %>%   dplyr::filter(!all(is.na(a_chlorophyll_log_int)))  %>%   mutate(a_chlorophyll_log_14roll = forecast::ma(a_chlorophyll_log_int,order=smoother_value_forecast))
-df<-df %>%   group_by(gridid_MS,year)  %>% arrange(doy) %>% mutate(a_chlorophyll_log_14roll=ifelse(row_number()==1,0.1, a_chlorophyll_log_14roll)) # first point set to zero
-df<-df %>%   group_by(gridid_MS,year) %>% arrange(doy) %>% mutate(a_chlorophyll_log_14roll=ifelse(row_number()==n(), 0.1, a_chlorophyll_log_14roll)) # last point set to zero
-df<-df %>%   group_by(gridid_MS,year) %>% arrange(doy)%>%   mutate(a_chlorophyll_log_14roll_int = na.approx(a_chlorophyll_log_14roll, na.rm=FALSE)) # interpolation of smoothed 3 day roll data
+df<-df %>%   group_by(jens_grid,year) %>% arrange(doy) %>%   dplyr::filter(!all(is.na(a_chlorophyll_log_int)))  %>%   mutate(a_chlorophyll_log_14roll = forecast::ma(a_chlorophyll_log_int,order=smoother_value_forecast))
+df<-df %>%   group_by(jens_grid,year)  %>% arrange(doy) %>% mutate(a_chlorophyll_log_14roll=ifelse(row_number()==1,0.1, a_chlorophyll_log_14roll)) # first point set to zero
+df<-df %>%   group_by(jens_grid,year) %>% arrange(doy) %>% mutate(a_chlorophyll_log_14roll=ifelse(row_number()==n(), 0.1, a_chlorophyll_log_14roll)) # last point set to zero
+df<-df %>%   group_by(jens_grid,year) %>% arrange(doy)%>%   mutate(a_chlorophyll_log_14roll_int = na.approx(a_chlorophyll_log_14roll, na.rm=FALSE)) # interpolation of smoothed 3 day roll data
 
 
 ###
@@ -65,19 +75,25 @@ set_minpeakheight_log<-log(1+1) # minimum peak height set to 1ug/l (of the smoot
 
 
 
-peakall_log<-df %>%   group_by(gridid_MS,year) %>% arrange(doy)%>% filter(doy>59 & doy<181) %>% # spring peak estimated prior to 180 day of year (Sigler 2014)
+peakall_log<-df %>%   group_by(jens_grid,year) %>% arrange(doy)%>% filter(doy>59 & doy<181) %>% # spring peak estimated prior to 180 day of year (Sigler 2014)
   mutate(peak_timing_all_log=ifelse(is.null(doy[pracma::findpeaks(a_chlorophyll_log_14roll_int,sortstr=sort_TRUE_log,minpeakheight=set_minpeakheight_log)[,2][1]]),
                                     NA, doy[pracma::findpeaks(a_chlorophyll_log_14roll_int,sortstr=sort_TRUE_log,minpeakheight=set_minpeakheight_log)[,2][1]]))
 
 
 setDT(peakall_log)
-timing_peak_all_log8<-peakall_log[  !is.na(year) &  !is.na(gridid_MS), lapply(.SD, function(x) {
-  if(is.numeric(x)) mean(x, na.rm = TRUE) else x[!is.na(x)][1L]}), by = list(year,gridid_MS)]
+timing_peak_all_log8<-peakall_log[  !is.na(year) &  !is.na(jens_grid), lapply(.SD, function(x) {
+  if(is.numeric(x)) mean(x, na.rm = TRUE) else x[!is.na(x)][1L]}), by = list(year,jens_grid)]
 timing_peak_all_log8<-data.frame(timing_peak_all_log8)
 
 head(timing_peak_all_log8)
 
+
+
+saveRDS(timing_peak_all_log8,file='inter_jens_datafiles/bloomTimingGlob_1998_2023.RDS')
+
 # plot 2023 here- just checking that it worked
+
+
 ggplot()+
   coord_equal(xlim=c(181,203),ylim=c(54.8,66),ratio = 1.8)+
   geom_point(data = timing_peak_all_log8, aes(x = lon+360, y = lat,fill=(peak_timing_all_log)),pch=21,size=7,color='black')+

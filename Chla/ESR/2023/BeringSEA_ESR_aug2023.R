@@ -23,8 +23,14 @@ head(bs)
 #########################
 ### prep for figure 2 ###
 #########################
-super_avg<- bs %>% group_by(year,bsierp_super_region) %>% filter(month>3 & month <7) %>% summarise(mean_chla = mean(meanchla,na.rm=TRUE),
-                                                                                                   sd_chla = sd(meanchla,na.rm=TRUE))
+bs2<- bs %>% group_by(year,bsierp_super_region,jens_grid) %>% filter(month>3 & month <7) %>% summarise(mean_chla = mean(meanchla,na.rm=TRUE),
+                                                                                                    sd_chla = sd(meanchla,na.rm=TRUE))
+head(bs2)
+
+table(bs2$bsierp_super_region,bs2$year)
+
+super_avg<- bs2 %>% group_by(year,bsierp_super_region) %>%  summarise(sd_chla = sd(mean_chla,na.rm=TRUE),
+                                                                      mean_chla = mean(mean_chla,na.rm=TRUE))
 head(super_avg)  
 table(super_avg$bsierp_super_region)
 
@@ -85,7 +91,7 @@ windows(14,8)
 fig2
 
 # save plot 
-png(filename="Chla/ESR/2023/Fig2_satellite_Chla_ESR_EBS.png",width = 1600, height = 1100,res=120)
+png(filename="Chla/ESR/2023/newFig2_satellite_Chla_ESR_EBS.png",width = 1600, height = 1100,res=120)
 plot(fig2)
 dev.off()
 # rejoice (or actually move on to Fig 3 )#
@@ -137,5 +143,109 @@ png(filename="Chla/ESR/2023/Fig3_satellite_Chla_ESR_EBS_tileplot60_180.png",widt
 plot(fig3)
 dev.off()
 
-# Figure 4 timing plot #
 
+###
+# Figure 4 timing plot #
+##
+##
+bl <- readRDS("inter_jens_datafiles/bloomTimingGlob_1998_2023.RDS")
+
+sum_bl<- bl %>% group_by(year,bsierp_super_region ) %>% summarize(avg_peak = mean(peak_timing_all_log,na.rm=TRUE),
+                                                                  sd_peak = sd(peak_timing_all_log,na.rm=TRUE))
+
+sum_bl_sub<-subset(sum_bl,bsierp_super_region %in% c("South inner shelf","South middle shelf","South outer shelf","Offshelf")  )
+head(sum_bl_sub)
+
+
+m2_glob<- bl[bl$jens_grid %in% c(108,109), ]
+
+#plot(m2_glob$year, m2_glob$gap_sizeTS)
+
+m2_glob_agg<- m2_glob %>% group_by(year) %>% summarize(avg_peak = mean(peak_timing_all_log,na.rm=TRUE),
+                                                       sd_peak = sd(peak_timing_all_log,na.rm=TRUE))
+
+m2_glob_agg$bsierp_super_region<-rep("M2 mooring",nrow(m2_glob_agg))
+
+  
+sat<-rbind(sum_bl_sub, m2_glob_agg)
+head(sat)
+sat$bsierp_super_region<-factor((as.character(sat$bsierp_super_region)), levels=c("South outer shelf","South middle shelf","South inner shelf",
+                                                                                    "Offshelf","M2 mooring"))  
+
+
+sigler<-read.csv("~/Arctic_IERP_Eisner_2019/nb13_spatial_chla_bloom_ms_BeringSea/r_script_satellite_bloom/mooring_m2_m4_m5_m8_data_workup/Sigler_2014_timing_data_modified_version.csv",header=TRUE, dec=".",sep=",",na.strings="NA")
+sig_m2<-sigler[sigler$Moor=="M2",]
+
+load("~/Arctic_IERP_Eisner_2019/nb13_spatial_chla_bloom_ms_BeringSea/r_script_satellite_bloom/mooring_m2_m4_m5_m8_data_workup/timing_data_M2_mooring_peaks_30_dec2021.RData")
+mor_m2<-jnd_tbl_m2
+dummy_year<-data.frame(1998:2023)
+colnames(dummy_year)<-'year'
+mor_m2<-merge(mor_m2,dummy_year,all=T,by='year')
+
+mor_m2$prim_hybrid<-mor_m2$primary_peak
+
+mor_m2$prim_hybrid[mor_m2$year==1998]<-sig_m2$peak_spring_bloom[sig_m2$Year==1998]
+mor_m2$prim_hybrid[mor_m2$year==1999]<-sig_m2$peak_spring_bloom[sig_m2$Year==1999]
+mor_m2$prim_hybrid[mor_m2$year==2000]<-sig_m2$peak_spring_bloom[sig_m2$Year==2000]
+mor_m2$prim_hybrid[mor_m2$year==2001]<-sig_m2$peak_spring_bloom[sig_m2$Year==2001]
+mor_m2$prim_hybrid[mor_m2$year==2002]<-sig_m2$peak_spring_bloom[sig_m2$Year==2002]
+
+
+mor_m2$prim_hybrid[mor_m2$year==2003]<-sig_m2$peak_spring_bloom[sig_m2$Year==2003]
+mor_m2$prim_hybrid[mor_m2$year==2004]<-sig_m2$peak_spring_bloom[sig_m2$Year==2004]
+mor_m2$prim_hybrid[mor_m2$year==2005]<-sig_m2$peak_spring_bloom[sig_m2$Year==2005]
+mor_m2$prim_hybrid[mor_m2$year==2010]<-sig_m2$peak_spring_bloom[sig_m2$Year==2010]
+mor_m2$prim_hybrid[mor_m2$year==2014]<-NA # adjustment done by looking at mooring data (highest near sat peak)
+mor_m2$prim_hybrid[mor_m2$year==2021]<-141 # adjustment done by looking at mooring data (highest near sat peak)
+
+head(mor_m2)  
+
+mooring<- rbind(mor_m2[,c(1,5)],mor_m2[,c(1,5)])
+
+mooring$bsierp_super_region<-c(rep('M2 mooring',nrow(mor_m2)),rep('South middle shelf',nrow(mor_m2)))
+
+sat$bsierp_super_region<-factor((as.character(sat$bsierp_super_region)), levels=c("South outer shelf","South middle shelf","South inner shelf",
+                                                                                  "Offshelf","M2 mooring"))  
+
+
+mooring$bsierp_super_region<-factor((as.character(mooring$bsierp_super_region)), levels=c("South outer shelf","South middle shelf","South inner shelf",
+                                                                                  "Offshelf","M2 mooring"))  
+
+
+# personal M2 mooring inspection - peak estimation
+mooring$prim_hybrid[25]<-141 # day of year - based on Prawler data
+mooring$prim_hybrid[51]<-141 # day of year - based on Prawler data
+
+###
+### average long-term data 
+###
+long_termavg<- sat %>% group_by(bsierp_super_region ) %>% summarize(avg_peak = mean(avg_peak,na.rm=TRUE),
+                                                                  sd_peak = sd(avg_peak,na.rm=TRUE))
+
+
+jens_names_fig4 <- c("South outer shelf"  = "south outer",
+                     "South middle shelf" = "south middle",
+                     "South inner shelf" = "south inner",
+                     "Offshelf"  = "off-shelf",
+                     "M2 mooring" = "M2 mooring")
+
+windows(11,9)  
+ggplot(sat,aes(avg_peak, year)) + 
+  geom_vline(data= long_termavg, aes(xintercept=avg_peak), linetype="dashed", color = "black",size=1)+
+  facet_wrap(bsierp_super_region~.,ncol=3,labeller =as_labeller(jens_names_fig4)) +
+  xlim(70, 190)+
+  scale_y_continuous(limits = c(1998,2023), breaks = (1998:2023))+
+  geom_point(data= sat, aes(x=avg_peak,y=year), color = "black",size=3,pch=15,alpha=1)+
+  geom_errorbar(data= sat, aes(y=year,xmin=avg_peak-sd_peak, xmax=avg_peak+sd_peak), width=.3,col='black',alpha=1)+
+  geom_point(data= mooring, aes(x=prim_hybrid,y=year), color = "dodgerblue",size=3,pch=19,alpha=0.7)+
+   theme(strip.text = element_text(size=18,color="white",family="sans",face="bold"),
+        strip.background = element_rect(fill='dodgerblue'),
+        axis.title = element_text(size=20,family="sans"),
+        axis.text = element_text(size=14,family="sans"),
+        legend.text = element_text(size=16),
+        panel.background=element_blank(),
+        panel.border=element_rect(color="black",fill=NA),
+        axis.text.x=element_text(color="black"),
+        axis.text.y=element_text(color="black"))+
+  ylab("Year") + 
+  xlab("Day of year")
