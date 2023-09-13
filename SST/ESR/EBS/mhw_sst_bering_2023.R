@@ -138,6 +138,43 @@ newdat %>%
         legend.title = element_blank())
 dev.off()
 
+#### 2023 question Is fig 2 within 1 sd of seasonal mean? ####
+ seasmean<-newdat %>% 
+  filter(year2>1985) %>% 
+  mutate(Season=case_when(
+    month%in%c(9,10,11)~"Fall",
+    month%in%c(12,1,2)~"Winter",
+    month%in%c(3,4,5)~"Spring",
+    month%in%c(6,7,8)~"Summer")) %>% 
+  data.frame %>% 
+  mutate(Season=factor(Season),
+         Season=fct_relevel(Season,"Fall","Winter","Spring","Summer")) %>% 
+  group_by(year2,Ecosystem_sub,Season) %>% 
+  summarise(meansst=mean(meansst)) %>% 
+  data.frame %>% 
+  mutate(Season=fct_relevel(Season,"Summer","Fall","Winter","Spring"))
+
+seas_mean_sd<-seasmean%>%
+  group_by(Ecosystem_sub, Season) %>%
+  summarize(avg_sst=mean(meansst),
+            sd_sst=sd(meansst))
+
+ggplot(data=seasmean, aes(year2,meansst,color=Season)) + 
+  geom_line(stat="identity") +
+  geom_point(stat="identity")+
+  geom_hline(data=seas_mean_sd,aes(yintercept=avg_sst, color=Season),linetype=2) +
+  geom_hline(data=seas_mean_sd,aes(yintercept=avg_sst-sd_sst, color=Season),linetype=2) +
+  geom_hline(data=seas_mean_sd,aes(yintercept=avg_sst+sd_sst, color=Season),linetype=2) +
+  scale_color_manual(name="",labels=c("Summer","Fall","Winter","Spring"),values=c(OceansBlue2,Crustacean1,UrchinPurple1,WavesTeal1)) +
+  facet_wrap(~Ecosystem_sub) + 
+  mytheme + 
+  scale_x_continuous(expand=c(0.01,0.75)) + 
+  xlab("") + 
+  ylab("Seasonal mean Sea Surface Temperature (°C)") +
+  theme(plot.margin=unit(c(0.15,0.25,0.05,0),"cm"),
+        legend.position=c(0.05,0.9),
+        legend.title = element_blank())
+
 
 #  Figure 3. Marine heatwaves in the southeastern and northern Bering Sea since September 2018
 mhw <- (detect_event(ts2clm(newdat %>%
@@ -220,7 +257,9 @@ ggplot(data = clim_cat %>% filter(t>=as.Date("2020-09-01")), aes(x = t, y = temp
   theme(legend.position=c(0.18,0.85))
 dev.off()
 
-
+####2023 question, is it accurate that there have been no heatwaves? ####
+filter(clim_cat, year==2023 & threshCriterion==TRUE)%>%
+  print(n=Inf)
 
 #-------------------------------------------------------------------------------------
 
