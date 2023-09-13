@@ -5,25 +5,53 @@ library(data.table)
 library(cmocean)
 
 
+# 
+f23 <- readRDS("inter_jens_datafiles/bloomTimingGlob_1998_2023.RDS")
+i23 <- readRDS("inter_jens_datafiles/iceRetreatTiming_1998_2023.RDS")
 
-
-f23<-readRDS(file='Chla/bloom_ice_retreat_timing_upto23.RDS')
-
+head(f23)
+head(i23)
 
 head(f23)
 # crop for Erins paper - we might still need to fix this # 
-E<- f23[f23$gridid_MS  %in% c(39,62:64,84:88,103:112,125:135,147:153, 170:175,193:196,215:218,237:241,
+E<- f23[f23$jens_grid   %in% c(39,62:64,84:88,103:112,125:135,147:153, 170:175,193:196,215:218,237:241,
                          260:264,281:288,304:311,327:334,350:358,374:381,398:405,422:428,446:450,470:473,494:495),]
 
+E2<- i23[i23$jens_grid   %in% c(39,62:64,84:88,103:112,125:135,147:153, 170:175,193:196,215:218,237:241,
+                               260:264,281:288,304:311,327:334,350:358,374:381,398:405,422:428,446:450,470:473,494:495),]
 
-E$north_south<-'north'
 
-E$north_south[E$lat<60.0001]<-'south'
+
+
+E_data<- E2 %>% full_join(E, by=c('jens_grid','year'))
+
+
+
+## getting  lat / longs from the jens grid
+
+grid_ll <- readRDS("inter_jens_datafiles/glob_bloom_type_DECISION_tree_data_feb2023.RDS")
+head(grid_ll)
+grid<-grid_ll %>% group_by(gridid) %>% summarise(lat = mean(gl_lat,na.rm=TRUE),
+                                                 lon = mean(gl_lon,na.rm=TRUE))
+
+
+colnames(grid)[1]<-'jens_grid'
+
+grid$jens_grid<-as.character(grid$jens_grid)
+
+Edf<- E_data %>% left_join(grid, by=c('jens_grid'))
+
+head(Edf)
+
+
+
+Edf$north_south<-'north'
+Edf$north_south[Edf$lat<60.0001]<-'south'
 
 library(data.table)
-setDT(E)
-agg_text<-E[ !is.na(gridid_MS), lapply(.SD, function(x) {
-  if(is.numeric(x)) mean(x, na.rm = TRUE) else x[!is.na(x)][1L]}), by = list(gridid_MS)]
+setDT(Edf)
+agg_text<-Edf[ !is.na(jens_grid), lapply(.SD, function(x) {
+  if(is.numeric(x)) mean(x, na.rm = TRUE) else x[!is.na(x)][1L]}), by = list(jens_grid)]
 
 
 
@@ -36,7 +64,7 @@ head(agg_text)
 #windows(24,20)
 map_bloomtype<- ggplot()+
   coord_equal(xlim=c(181,203),ylim=c(54.8,66),ratio = 1.8)+ # big map coordinates
-  geom_text(data = agg_text, aes(x = lon+360, y =lat,label=as.character(gridid_MS),col=north_south),size=5)+
+  geom_text(data = agg_text, aes(x = lon+360, y =lat,label=as.character(jens_grid),col=north_south),size=5)+
   geom_polygon(data = data_mapH, aes(x=long, y = lat, group = group),colour="black", fill="darkgrey")+
   ylab("Latitude")+
   scale_x_continuous("Longitude", breaks=breaks_w2, labels=labels_w2, limits=c(140,250))+
@@ -61,17 +89,14 @@ dev.off()
 ###
 ### bloom type metrics
 ### 
-head(E)
-E$ice_retr_roll15 [is.na(E$ice_retr_roll15 )]<-0
-E$glob_bloom_ice_diff<-E$peak_timing_all_log -E$ice_retr_roll15
-E$gl_type<-'ice_full'
-E$gl_type[E$glob_bloom_ice_diff>20]<-'ice_free'
+head(Edf)
+Edf$bloom_ice_diff<-Edf$peak_timing_all_log -Edf$ice_retr_roll15
+Edf$bloomtype<-'ice_full'
+Edf$bloomtype[Edf$bloom_ice_diff>20]<-'ice_free'
 
 
 
-
-
-ice_free_sum<- E %>% group_by(year, north_south,gl_type) %>% summarize(count = n())
+ice_free_sum<- Edf %>% group_by(year, north_south,bloomtype) %>% summarize(count = n())
 table(ice_free_sum$year)
 head(ice_free_sum)
 tail(ice_free_sum)
@@ -84,14 +109,24 @@ wide_type$ice_full[is.na(wide_type$ice_full)]<-0
 wide_type$perc_open_water<- (wide_type$ice_free/ (wide_type$ice_free+wide_type$ice_full))*100
 
 
+check <- read.csv('inter_jens_datafiles/test_bloom.csv')
+check
+check
 head(wide_type)
+tail(check)
+check[51:52,5]<-NA
+
+
 
 ### note that 2023 is a dummy of 2019 (or 2018)
 
-bloomtype_TS<-ggplot(data=wide_type, aes(x = year, y = perc_open_water,color=north_south)) + 
+bloomtype_TS<-
+ggplot(data=wide_type, aes(x = year, y = perc_open_water,color=north_south)) + 
   geom_line(linewidth = 3) + 
   scale_fill_manual(values=c('red3','dodgerblue'),na.value = 'grey90')+
   scale_color_manual(values=c('red3','dodgerblue'),na.value = 'grey90')+
+  #geom_line(data=check,aes(x = year, y = perc_open_water),color='black',size=1.5) + 
+  
   xlab("")+
   ylab("Chl-a bloom peak (day of year)")+
   #scale_y_continuous( limits=c(0,200))+
@@ -106,10 +141,10 @@ bloomtype_TS<-ggplot(data=wide_type, aes(x = year, y = perc_open_water,color=nor
         axis.text.x=element_text(color="black"))
 
 
-png(filename="Chla/ESP/2023_indicators/Fig2_bloomtype_timeseriesESP_crab_missing2023.png",width = 1600, height = 1200,res=120)
+png(filename="Chla/ESP/2023_indicators/Fig2_bloomtype_timeseriesESP_crab_missing2023_final.png",width = 1600, height = 1200,res=120)
 plot(bloomtype_TS)
 dev.off()
 
 
-write_csv(wide_type, file='Chla/ESP/2023_indicators/bloom_type_ESP_contribution_missing2023.csv')
+write_csv(wide_type, file='Chla/ESP/2023_indicators/bloom_type_ESP_contributio_with2023.csv')
 
