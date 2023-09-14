@@ -148,3 +148,74 @@ dev.off()
 
 write_csv(wide_type, file='Chla/ESP/2023_indicators/bloom_type_ESP_contributio_with2023.csv')
 
+
+
+
+
+
+
+
+
+
+
+###
+### bloom type by super region
+###
+ff23 <- readRDS("inter_jens_datafiles/bloomTimingGlob_1998_2023.RDS")
+ii23 <- readRDS("inter_jens_datafiles/iceRetreatTiming_1998_2023.RDS")
+
+
+bl<- ff23 %>% full_join(ii23, by=c('jens_grid','year'))
+
+
+bl<-bl[complete.cases(bl$peak_timing_all_log),]
+bl<-bl[complete.cases(bl$bsierp_super_region),]
+
+
+bl$bloom_ice_diff<-bl$peak_timing_all_log -bl$ice_retr_roll15
+bl$bloomtype<-'ice_full'
+bl$bloomtype[bl$bloom_ice_diff>20]<-'ice_free'
+
+
+
+bl_sum<- bl %>% group_by(year, bsierp_super_region,bloomtype) %>% summarize(count = n())
+
+
+table(bl_sum$year)
+head(bl_sum)
+tail(bl_sum)
+colnames(bl_sum)[3]<-'type'
+
+wide_type2<-spread(bl_sum, key = type, value = count)
+wide_type2$ice_free[is.na(wide_type2$ice_free)]<-0
+wide_type2$ice_full[is.na(wide_type2$ice_full)]<-0
+
+wide_type2$perc_open_water<- (wide_type2$ice_free/ (wide_type2$ice_free+wide_type2$ice_full))*100
+
+
+
+
+bloomtype_region<-
+  ggplot(data=wide_type2, aes(x = year, y = perc_open_water,color=bsierp_super_region)) + 
+  geom_line(linewidth = 3) + 
+  #scale_fill_manual(values=c('red3','dodgerblue'),na.value = 'grey90')+
+  #scale_color_manual(values=c('red3','dodgerblue'),na.value = 'grey90')+
+  #geom_line(data=check,aes(x = year, y = perc_open_water),color='black',size=1.5) + 
+  
+  xlab("")+
+  ylab("Percent open water blooms")+
+  #scale_y_continuous( limits=c(0,200))+
+  facet_wrap(~ bsierp_super_region,ncol=3)+
+  theme(plot.title = element_text(size = 24),
+        strip.text = element_text(size=20,color="white",family="sans",face="bold"),
+        strip.background = element_rect(fill='dodgerblue'), # Add the NOAA color blue to the facet strips.
+        axis.title = element_text(size=26,family="sans"),
+        axis.text = element_text(size=18,family="sans"),
+        panel.background=element_blank(),
+        panel.border=element_rect(color="black",fill=NA),
+        axis.text.x=element_text(color="black"))
+
+
+
+windows(14,8)
+bloomtype_region

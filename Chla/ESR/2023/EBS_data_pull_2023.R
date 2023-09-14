@@ -15,7 +15,7 @@ con <- dbConnect(odbc::odbc(), "akfin",  UID="JNIELSEN", PWD=getPass())
 glob<-dbFetch(dbSendQuery(con, "select round(avg(chla),2) meanchla, to_date(start_date,'YYYY-MM-DD')+4 mid_date, jens_grid, bsierp_id,bsierp_super_region 
 from env_data.globcolour_2023 a
 left join env_data.globcolour_spatial_lookup b on a.glob_id=b.glob_id
-where extract(month from to_date(start_date,'YYYY-MM-DD')+4) in (1,2,3,4, 5, 6)
+where extract(month from to_date(start_date,'YYYY-MM-DD')+4) in (1,2,3,4, 5, 6,7,8,9,10,11,12)
 and ecosystem_area = ('Eastern Bering Sea')
 and waters_cod = 'FED'
 and depth>(-200)
