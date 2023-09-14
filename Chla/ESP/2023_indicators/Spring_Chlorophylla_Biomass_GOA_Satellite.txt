@@ -1,0 +1,75 @@
+#Ecosystem and Socioeconomic Profile (ESP) indicator contribution for stocks managed under the North Pacific Fisheries Management Council
+#This template is required for updating ESP indicator contribution information  
+#There are two required sections to check or update (see below): Indicator Review and Indicator Data  
+#Please fill in the text (surrounded by " ") or data as values in the line after each field marked with a # and capitalized name (e.g., #INDICATOR_NAME, the next line should be the name of your indicator, for example "Annual_Arrowtooth_Biomass_GOA_Model") 
+#Note that all fields are described in the Alaska ESP User Guide, please see pdf attached to indicator assignment email for more details
+#INDICATOR_REVIEW ----------------------------------------------------------------------------------------
+#SUBMISSION_YEAR - Current year of contribution submission
+2023
+#INDICATOR_NAME - Composite key (meaning this must be unique to the indicator) based on the ESP naming convention and used for joining ESP data tables. Please see email with your indicator names, and copy/paste name to this location. Note: this name must match the ESP records provided in the email, please do not change. Questions, contact kalei.shotwell@noaa.gov
+"Spring_Chlorophylla_Biomass_GOA_Satellite"
+#DESCRIPTION - Brief description of the indicator and why it is important to groundfish fishery management. Please make sure this description includes information on the spatial distribution of the indicator and how the data for the indicator are collected. The spatial resolution can be a cell size dimension (e.g., 5 km resolution for gridded data) or area of sampling for a survey (e.g., Shelikof Strait). The data collection method can be brief (e.g., survey name and gear type, satellite sensor and version, stock assessment model output, fishery observer data, community reports, etc.) and can include a reference to methods detailed elswhere. (Limit to 4000 characters)  
+"Phytoplankton provide basal resources for secondary consumers like zooplankton and larval fish. The timing and magnitude of a phytoplankton bloom varies annually and may play an important role in the success of cohorts each year. Satellite data provide a good opportunity to capture these large-scale spatio-temporal dynamics and trends of phytoplankton. Average chlorophyll-a concentration during spring (April-June) in the GOA (NMFS areas 610, 620, 630, 640, 650). Bottom depths were limited to deeper than -10m. This indicator was calculated with the ESA globcolour blended satellite product at a 4 km resolution using 8-day composite data. https://github.com/MattCallahan-NOAA/ESR-ESP."
+#STATUS_TRENDS - Information on the current status of the indicator in the context of historical trends. This is similar to the Ecosystem Status Report contribution (Limit to 4000 characters)
+"Low this year."
+#FACTORS - Information on the potential causes for observed trends and current status (focus on most recent year). This is similar to the Ecosystem Status Report contribution. (Limit to 4000 characters)
+"See latest Ecosystem Status Report."
+#IMPLICATIONS - Information that briefly answers these questions: What are the implications or impacts of the observed trends on the ecosystem or ecosystem components? What do the trends mean? Why are they important? How can this information be used to inform groundfish management decisions? This is similar to the Ecosystem Status Report contribution. (Limit to 4000 characters)   
+"See latest Ecosystem Status Report."
+#REFERENCES - Include any full references that are associated with the indicator. This may include data references such as from an ERDDAP webpage or literature cited (plus the DOI where possible). Please also provide the full reference if there is an associated Ecosystem Status Report contribution that provides more details on the indicator.
+"This study has been conducted using E.U. Copernicus Marine Service Information: doi 4e33fd81-d5cc-dc40-b645-ab961447d9d8"
+#INDICATOR_DATA ----------------------------------------------------------------------------------------------
+#YEAR - List of years for the indicator contribution 
+1998
+1999
+2000
+2001
+2002
+2003
+2004
+2005
+2006
+2007
+2008
+2009
+2010
+2011
+2012
+2013
+2014
+2015
+2016
+2017
+2018
+2019
+2020
+2021
+2022
+2023
+#INDICATOR_VALUE - List of data values for the indicator contribuion (must match the year list length)
+1.24
+1.72
+1.78
+1.24
+2.02
+1.45
+1.38
+1.46
+1.59
+1.38
+1.47
+1.87
+1.2
+1.59
+1.25
+1.45
+1.4
+0.89
+0.87
+1
+1.41
+0.93
+0.99
+1.06
+1.12
+0.71
