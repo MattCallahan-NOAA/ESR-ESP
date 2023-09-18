@@ -39,6 +39,9 @@ super_avg_sub<-subset(super_avg,bsierp_super_region %in% c("South inner shelf","
                                                                                     "North middle shelf","North outer shelf","Offshelf","Bering Strait & St Lawrence"))
 
 
+
+write.csv(super_avg_sub,file='inter_jens_datafiles/ESR_chla_forDave_superREGIONS_sep2023.csv') 
+
 # sets up the darker blue color of the most recent year
 color_filler<-rep(c(rep('dodgerblue',25),'blue'),8) # fix here - when more years are added # 
 
@@ -91,9 +94,9 @@ windows(14,8)
 fig2
 
 # save plot 
-png(filename="Chla/ESR/2023/newFig2_satellite_Chla_ESR_EBS.png",width = 1600, height = 1100,res=120)
-plot(fig2)
-dev.off()
+# png(filename="Chla/ESR/2023/newFig2_satellite_Chla_ESR_EBS.png",width = 1600, height = 1100,res=120)
+# plot(fig2)
+# dev.off()
 # rejoice (or actually move on to Fig 3 )#
 
 range(bs$doy)
