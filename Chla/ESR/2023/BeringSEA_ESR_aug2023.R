@@ -162,6 +162,11 @@ sum_bl_sub<-subset(sum_bl,bsierp_super_region %in% c("South inner shelf","South 
 head(sum_bl_sub)
 
 
+write.csv(sum_bl_sub,file='inter_jens_datafiles/bloom_timing_superRegions_forDaveSEP2023.csv') 
+
+
+
+
 m2_glob<- bl[bl$jens_grid %in% c(108,109), ]
 
 #plot(m2_glob$year, m2_glob$gap_sizeTS)

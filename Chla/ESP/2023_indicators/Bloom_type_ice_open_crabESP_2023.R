@@ -146,7 +146,7 @@ plot(bloomtype_TS)
 dev.off()
 
 
-write_csv(wide_type, file='Chla/ESP/2023_indicators/bloom_type_ESP_contributio_with2023.csv')
+#write_csv(wide_type, file='Chla/ESP/2023_indicators/bloom_type_ESP_contributio_with2023.csv')
 
 
 
@@ -219,3 +219,7 @@ bloomtype_region<-
 
 windows(14,8)
 bloomtype_region
+
+
+write.csv(wide_type2,file='inter_jens_datafiles/bloom_type_superregion_forDaveSept2023.csv') 
+
