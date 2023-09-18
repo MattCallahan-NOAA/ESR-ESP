@@ -41,7 +41,7 @@ group by extract(year from to_date(start_date,'YYYY-MM-DD')+4)
 order by extract(year from to_date(start_date,'YYYY-MM-DD')+4) asc;
 
 
-/* We will submit the following using a text file to test the parser later
+-- We will submit the following using a text file to test the parser
 
 
 
@@ -130,6 +130,3 @@ and waters_cod = 'FED'
 and depth>(-200)
 and depth<(-10)
 group by to_date(start_date,'YYYY-MM-DD')+4, ecosystem_subarea;
-
-
-*/
