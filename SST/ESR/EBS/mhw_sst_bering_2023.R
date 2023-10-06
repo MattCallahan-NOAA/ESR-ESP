@@ -247,7 +247,10 @@ ggplot(data = clim_cat %>% filter(t>=as.Date("2020-09-01")), aes(x = t, y = temp
   scale_colour_manual(name = NULL, values = lineColCat,
                       breaks = c("Temperature", "Climatology", "Moderate",
                                  "Strong", "Severe", "Extreme")) +
-  scale_fill_manual(name = "Heatwave\nIntensity", values = fillColCat, labels=c("Moderate","Strong","Severe","Extreme")) +
+  scale_fill_manual(name = "Heatwave\nIntensity", 
+                    #values = fillColCat, 
+                    values = c("white", "#ffc866","#ff6900", "#9e0000","#2d0000"),
+                    labels=c("No MHW","Moderate","Strong","Severe","Extreme")) +
   scale_x_date(date_labels = "%b %Y",expand=c(0.01,0)) +
   guides(colour = "none") +
   labs(y = "Sea Surface Temperature (°C)", x = NULL) + 

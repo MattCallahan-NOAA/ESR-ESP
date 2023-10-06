@@ -1,6 +1,7 @@
 ####Matt Callahan and Jordan Watson####
 #ROMS Wrangling
 #6/22/21
+# Ran 10/5/23 for 2023
 #matt.callahan@noaa.gov
 
 library(RNetCDF)
@@ -8,7 +9,7 @@ library(tidync)
 require(tidyverse)
 require(lubridate)
 library(sf)
-library(AKmarineareas)
+library(akmarineareas2)
 
 #  Access netcdfs from THREDDS server (https://data.pmel.noaa.gov/aclim/thredds/catalog.html)
 
@@ -23,9 +24,13 @@ lkp <- readRDS("EBS/Data/crwsst_spatial_lookup_table.RDS") %>%
             minlon=min(longitude))
 
 #  We need to access the file containing the extended spatial grids, which contains different transformations of the spatial coordinates.
-grid<-tidync("https://data.pmel.noaa.gov/aclim/thredds/dodsC/extended_grid/Bering10K_extended_grid.nc")
+#grid<-tidync("https://data.pmel.noaa.gov/aclim/thredds/dodsC/extended_grid/Bering10K_extended_grid.nc")
+#2023 update
+grid<-tidync("https://data.pmel.noaa.gov/aclim/thredds/dodsC/ancillary/Bering10K_extended_grid.nc") #new
+#grid<-tidync("https://data.pmel.noaa.gov/aclim/thredds/dodsC/B10K-K20_CORECFS/Level2/2020-2024/B10K-K20_CORECFS_2020-2024_average_temp_bottom5m.nc")
 
 #  One of the native grids contains the columns we need to match the bottom temperature data to latitudes and longitudes.
+#This didn't work 2023
 grid_lkp <- grid %>% 
   activate("D8,D2") %>% 
   hyper_tibble() %>% 
@@ -45,7 +50,9 @@ grid_lkp %>%
   geom_point()
 
 #  Now load load the ROMS data file (note that this does not extract the data so it is quick).
-ROMS <- tidync("https://data.pmel.noaa.gov/aclim/thredds/dodsC/Level2/B10K-K20_CORECFS_bottom5m.nc")
+#ROMS<-tidync("https://data.pmel.noaa.gov/aclim/thredds/dodsC/B10K-K20_CORECFS/Level2/2020-2024/B10K-K20_CORECFS_2020-2024_average_temp_bottom5m.nc")
+ROMS<-tidync("https://data.pmel.noaa.gov/aclim/thredds/dodsC/B10K-K20_Level2_CORECFS_bottom5m_collection.nc") #new
+#ROMS <- tidync("https://data.pmel.noaa.gov/aclim/thredds/dodsC/Level2/B10K-K20_CORECFS_bottom5m.nc")
 
 # We can create a data frame of dates. To match our SST data, we only need bottom temperatures since 1985-01-01.
 # So we identify which dates to filter our from our subsequent query. 
@@ -64,21 +71,21 @@ ROMS %>%
                xi_rho=xi_rho>=min(grid_lkp$xi_rho) & xi_rho<=max(grid_lkp$xi_rho), # Filter xi_rho based on the spatial lookup
                eta_rho=eta_rho>=min(grid_lkp$eta_rho) & eta_rho<=max(grid_lkp$eta_rho)) %>%  # Filter eta_rho based on the spatial lookup
   hyper_tibble(select_var="temp") %>% 
-  saveRDS("EBS/Data/ROMS_bottom_temp_EBS_1985_2022.RDS")# Only extract the temperature variable
+  saveRDS("EBS/Data/ROMS_bottom_temp_EBS_1985_2023.RDS")# Only extract the temperature variable
 
 
 #  Read in the ESR shapefile and subset for the Bering areas
-esr_shp <- AK_marine_area(area="Ecosystem Subarea") %>% 
+esr_shp <- esr %>% 
   filter(Ecosystem_Subarea%in%c("Northern Bering Sea","Southeastern Bering Sea"))
 
 # Convert the lookup grid to a sf object with CRS and then transform to that of the shapefile and 
 # perform the point-in-polygon operation, removing unmatched coordinates.
 #turn off spherical geometry first
-sf::sf_use_s2(FALSE)
-esr_pts = st_join(
+#sf::sf_use_s2(FALSE)
+esr_pts <- st_join(
   st_as_sf(grid_lkp, coords = c("longitude", "latitude"), crs = 4326, agr = "constant")  %>% # Use the duplicated lat/lon columns for matching to avoid rounding issues.
-    st_transform(st_crs(esr_shp)$proj4string),
-  esr_shp) %>% 
+    st_transform(st_crs(esr_shp)),
+  st_make_valid(esr_shp)) %>% 
   filter(!is.na(Ecosystem_Subarea)) %>% 
   data.frame %>% # THis will drop the latitude and longitude point geometry column
   dplyr::select(Ecosystem_Subarea,lat_rho,lon_rho,xi_rho,eta_rho,BSIERP_ID)
@@ -90,10 +97,10 @@ esr_pts %>%
 
 
 #  Join and save!
-readRDS("EBS/Data/ROMS_bottom_temp_EBS_1985_2022.RDS") %>% 
+readRDS("EBS/Data/ROMS_bottom_temp_EBS_1985_2023.RDS") %>% 
   inner_join(esr_pts) %>% 
   mutate(date=as_date(as_datetime(ocean_time,origin="1900-01-01 00:00:00", tz = "UTC"))) %>% 
-  saveRDS("EBS/Data/ROMS_bottom_temp_1985_2022_merged_ESR.RDS")
+  saveRDS("EBS/Data/ROMS_bottom_temp_1985_2023_merged_ESR.RDS")
 
 
 
@@ -104,8 +111,9 @@ readRDS("EBS/Data/ROMS_bottom_temp_EBS_1985_2022.RDS") %>%
 #ROMS Bering Sea "hot topic" for 2022 ESR
 #Matt Callahan 
 #9/2/2022
+#10/5/2023
 
-#install packages
+#load packages
 library(tidyverse)
 library(lubridate)
 library(cowplot)
@@ -214,7 +222,7 @@ lkp <- readRDS("EBS/Data/crwsst_spatial_lookup_table.RDS") %>%
             maxlon=max(longitude),
             minlon=min(longitude))
 r.ak <- marmap::as.raster(getNOAA.bathy(lon1=lkp$minlon,lon2=lkp$maxlon,lat1=lkp$minlat,lat2=lkp$maxlat, resolution=1))
-ROMS<-readRDS("EBS/Data/ROMS_bottom_temp_1985_2022_merged_ESR.RDS")%>%
+ROMS<-readRDS("EBS/Data/ROMS_bottom_temp_1985_2023_merged_ESR.RDS")%>%
   mutate(depth=round(raster::extract(r.ak,cbind(lon_rho,lat_rho),method="bilinear"),0))
 
 #Group by date
@@ -278,7 +286,7 @@ pb2
 
 #combine plots
 pb3<-plot_grid(pb1,pb2,ncol=1)
-png("EBS/2022/hottopic_sst_bt.png", height=24, width=24, units="cm", res=300)
+png("EBS/2023/hottopic_sst_bt.png", height=24, width=24, units="cm", res=300)
 pb3
 dev.off()
 
@@ -301,10 +309,11 @@ SSTupdate<- dbFetch(
 inner join afsc.erddap_crw_sst_spatial_lookup lkp
 on sst.CRW_ID=lkp.id
 where ecosystem='Eastern Bering Sea'
-and read_date > to_date('01 sep 2022 12:00:00', 'dd mon yyyy hh:mi:ss')
+and read_date > to_date('01 sep 2021 12:00:00', 'dd mon yyyy hh:mi:ss')
 and read_date < to_date('01 sep 2023 12:00:00', 'dd mon yyyy hh:mi:ss')")) 
 saveRDS(SSTupdate, "EBS/Data/2023update_raw.RDS")
 #oops forgot a few rows
+# 
 bonus<- dbFetch(
   dbSendQuery(con,"select read_date, crw_id, temp, ecosystem_sub, depth from AFSC.erddap_crw_sst sst
 inner join afsc.erddap_crw_sst_spatial_lookup lkp
@@ -330,11 +339,8 @@ test%>%
   summarise(sst=mean(TEMP),
             n=n())
 
-SSTdata2%>% 
-  mutate(date=as.Date(READ_DATE))%>%
-           filter(date==date("2021-09-02"))
 
-#calculate 2022
+#aggregate 2023
 SSTupdate2<-SSTupdate%>%
   filter(DEPTH>-200 & DEPTH< -10)%>%
   mutate(depth2=ifelse(DEPTH>=-50, "inner", "outer/middle"),
@@ -344,8 +350,17 @@ SSTupdate2<-SSTupdate%>%
   summarise(SST=mean(TEMP))%>%
   dplyr::select(READ_DATE, SST, Ecosystem_sub, eco2)
 
+#remove sep 2 2021
+SSTupdate2<-SSTupdate2%>%
+  filter(READ_DATE != as.POSIXct("2021-09-02 12:00:00", tz= "UTC"))
+
+
 #process data
-SSTdata2<-SSTdata2%>%bind_rows(SSTupdate2) %>%
+SSTdata2<-SSTdata2%>%bind_rows(SSTupdate2) 
+#save, use this next year
+saveRDS(SSTdata2, "EBS/Data/ESR_sst_depthbins_2023.RDS")
+
+SSTdata2<-SSTdata2%>%
   rename_all(tolower) %>% 
   mutate(month=month(read_date),
          day=day(read_date),
@@ -470,7 +485,7 @@ pb5<-ggplot() +
 pb5
 
 pb6<-plot_grid(pb4,pb5,ncol=2)
-png("EBS/2022/hottopic_sst_bt_depthbin.png", height=24, width=24, units="cm", res=300)
+png("EBS/2023/hottopic_sst_bt_depthbin.png", height=24, width=24, units="cm", res=300)
 pb6
 dev.off()
 
@@ -488,14 +503,14 @@ lkp <- readRDS("EBS/Data/crwsst_spatial_lookup_table.RDS") %>%
             maxlon=max(longitude),
             minlon=min(longitude))
 r.ak <- marmap::as.raster(getNOAA.bathy(lon1=lkp$minlon,lon2=lkp$maxlon,lat1=lkp$minlat,lat2=lkp$maxlat, resolution=1))
-ROMS<-readRDS("EBS/Data/ROMS_bottom_temp_1985_2022_merged_ESR.RDS")%>%
+ROMS<-readRDS("EBS/Data/ROMS_bottom_temp_1985_2023_merged_ESR.RDS")%>%
   mutate(depth=round(raster::extract(r.ak,cbind(lon_rho,lat_rho),method="bilinear"),0))
 
 
-SSTupdate<-readRDS("EBS/Data/2022update_raw.RDS")
+SSTupdate<-readRDS("EBS/Data/2023update_raw.RDS")
 
 
-#calculate 2022
+#calculate 2023
 SSTupdate2<-SSTupdate%>%
   filter(DEPTH>-200 & DEPTH< -50)%>%
   mutate(depth2=ifelse(DEPTH>=-100, "middle", "outer"),
@@ -711,7 +726,7 @@ pb5<-ggplot() +
 pb5
 
 pb6<-plot_grid(pb4,pb5,ncol=1)
-png("EBS/2022/hottopic_sst_bt_inmidout.png", height=24, width=30, units="cm", res=300)
+png("EBS/2023/hottopic_sst_bt_inmidout.png", height=24, width=30, units="cm", res=300)
 pb6
 dev.off()
 
