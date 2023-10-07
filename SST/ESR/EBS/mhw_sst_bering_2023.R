@@ -215,6 +215,11 @@ fillColCat <- c(
   "Extreme" = "#2d0000"
 )
 
+Moderate = "#ffc866"
+Strong = "#ff6900"
+Severe = "#9e0000"
+Extreme = "#2d0000"
+
 mytheme2 <- theme(strip.text = element_text(size=10,color="white",family="sans",face="bold"),
                  strip.background = element_rect(fill=OceansBlue2),
                  axis.title = element_text(size=10,family="sans",color="black"),
@@ -234,30 +239,29 @@ mytheme2 <- theme(strip.text = element_text(size=10,color="white",family="sans",
 #Update date in this figure!
 png("EBS/2023/Callahan_Fig3.png",width=7,height=5,units="in",res=300)
 ggplot(data = clim_cat %>% filter(t>=as.Date("2020-09-01")), aes(x = t, y = temp)) +
-  geom_flame(aes(y2 = thresh, fill = "Moderate")) +
-  geom_flame(aes(y2 = thresh_2x, fill = "Strong")) +
-  geom_flame(aes(y2 = thresh_3x, fill = "Severe")) +
-  geom_flame(aes(y2 = thresh_4x, fill = "Extreme")) +
-  geom_line(aes(y = thresh_2x, col = "Strong"), size = 0.5, linetype = "dotted") +
-  geom_line(aes(y = thresh_3x, col = "Severe"), size = 0.5, linetype = "dotted") +
-  geom_line(aes(y = thresh_4x, col = "Extreme"), size = 0.5, linetype = "dotted") +
-  geom_line(aes(y = seas, col = "Climatology"), size = 0.5) +
-  geom_line(aes(y = thresh, col = "Moderate"), size = 0.5,linetype= "dotted") +
-  geom_line(aes(y = temp, col = "Temperature"), size = 0.5) +
+  geom_line(aes(y = temp, col = "Temperature"), size = 0.85) +
+  geom_flame(aes(y2 = thresh, fill = Moderate)) +
+  geom_flame(aes(y2 = thresh_2x, fill = Strong)) +
+  geom_flame(aes(y2 = thresh_3x, fill = Severe)) +
+  geom_flame(aes(y2 = thresh_4x, fill = Extreme)) +
+  geom_line(aes(y = thresh_2x, col = "Strong (2x Threshold)"), size = 0.5, linetype = "dotted") +
+  geom_line(aes(y = thresh_3x, col = "Severe (3x Threshold)"), size = 0.5, linetype = "dotted") +
+  geom_line(aes(y = thresh_4x, col = "Extreme (4x Threshold)"), size = 0.5, linetype = "dotted") +
+  geom_line(aes(y = seas, col = "Baseline"), size = 0.65,linetype="solid") +
+  geom_line(aes(y = thresh, col = "Moderate (1x Threshold)"), size = 0.5,linetype= "dotted") +
+  
+  #geom_text(data=BSmhw_lab,aes(x=t,y=temp,label=mylab),hjust=0,size=8,family="sans",lineheight=1) +
   scale_colour_manual(name = NULL, values = lineColCat,
-                      breaks = c("Temperature", "Climatology", "Moderate",
-                                 "Strong", "Severe", "Extreme")) +
-  scale_fill_manual(name = "Heatwave\nIntensity", 
-                    #values = fillColCat, 
-                    values = c("white", "#ffc866","#ff6900", "#9e0000","#2d0000"),
-                    labels=c("No MHW","Moderate","Strong","Severe","Extreme")) +
+                      breaks = c("Temperature", "Baseline", "Moderate (1x Threshold)"),guide=FALSE) +
+  scale_fill_manual(name = "Heatwave\nIntensity", values = c(Extreme,Severe,Strong,Moderate),labels=c("Extreme","Severe","Strong","Moderate")#, guide = FALSE
+  ) +
   scale_x_date(date_labels = "%b %Y",expand=c(0.01,0)) +
   guides(colour = "none") +
   labs(y = "Sea Surface Temperature (°C)", x = NULL) + 
  # theme(legend.position="none") +
   facet_wrap(~region,ncol=1,scales="free_y") +
-  mytheme2+
-  theme(legend.position=c(0.18,0.85))
+  mytheme2
+  #theme(legend.position=c(0.18,0.85))
 dev.off()
 
 ####2023 question, is it accurate that there have been no heatwaves? ####

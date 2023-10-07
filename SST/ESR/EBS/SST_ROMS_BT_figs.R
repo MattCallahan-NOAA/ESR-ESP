@@ -302,7 +302,7 @@ hist((ROMS%>%filter(depth>=-200))$depth)
 SSTdata2<-readRDS("EBS/Data/ESR_sst_depthbins.RDS")
 #need to query raw SST for new aggregation
 #connect to db
-con<- dbConnect(odbc::odbc(),dsn="AKFIN",uid=getPass(),pwd=getPass())
+con<- dbConnect(odbc::odbc(),dsn="AKFIN",uid=getPass (),pwd=getPass())
 #download sst
 SSTupdate<- dbFetch(
   dbSendQuery(con,"select read_date, crw_id, temp, ecosystem_sub, depth from AFSC.erddap_crw_sst sst
@@ -615,6 +615,7 @@ sst_domains$domain<-fct_relevel(sst_domains$domain, c("outer", "middle", "inner"
 
 #plot
 pb4 <- ggplot() +
+
   geom_line(data=sst_domains %>% filter(year2<last.year), # Older years are grey lines.
             aes(newdate,meansst,group=factor(year2),col='mygrey'),size=0.3) +
   geom_line(data=sst_domains %>% filter(year2==last.year), # The previous year
