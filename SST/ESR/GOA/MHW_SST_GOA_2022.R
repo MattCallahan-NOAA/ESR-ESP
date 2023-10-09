@@ -178,29 +178,39 @@ mytheme <- theme(strip.text = element_text(size=10,color="white",family="sans",f
 
 png("GOA/2023/Callahan_Figure_2_Flames_GOA_2023.png",width=7,height=5,units="in",res=300)
 ggplot(data = clim_cat %>% filter(t>=as.Date("2020-09-01")), aes(x = t, y = temp)) +
-  geom_flame(aes(y2 = thresh, fill = "Moderate")) +
-  geom_flame(aes(y2 = thresh_2x, fill = "Strong")) +
-  geom_flame(aes(y2 = thresh_3x, fill = "Severe")) +
-  geom_flame(aes(y2 = thresh_4x, fill = "Extreme")) +
-  geom_line(aes(y = thresh_2x, col = "Strong"), size = 0.5, linetype = "dotted") +
-  geom_line(aes(y = thresh_3x, col = "Severe"), size = 0.5, linetype = "dotted") +
-  geom_line(aes(y = thresh_4x, col = "Extreme"), size = 0.5, linetype = "dotted") +
-  geom_line(aes(y = seas, col = "Climatology"), size = 0.5) +
-  geom_line(aes(y = thresh, col = "Moderate"), size = 0.5,linetype= "dotted") +
-  geom_line(aes(y = temp, col = "Temperature"), size = 0.5) +
+  geom_line(aes(y = temp, col = "Temperature"), size = 0.85) +
+  geom_flame(aes(y2 = thresh, fill = Moderate)) +
+  geom_flame(aes(y2 = thresh_2x, fill = Strong)) +
+  geom_flame(aes(y2 = thresh_3x, fill = Severe)) +
+  geom_flame(aes(y2 = thresh_4x, fill = Extreme)) +
+  geom_line(aes(y = thresh_2x, col = "Strong (2x Threshold)"), size = 0.5, linetype = "dotted") +
+  geom_line(aes(y = thresh_3x, col = "Severe (3x Threshold)"), size = 0.5, linetype = "dotted") +
+  geom_line(aes(y = thresh_4x, col = "Extreme (4x Threshold)"), size = 0.5, linetype = "dotted") +
+  geom_line(aes(y = seas, col = "Baseline"), size = 0.65,linetype="solid") +
+  geom_line(aes(y = thresh, col = "Moderate (1x Threshold)"), size = 0.5,linetype= "dotted") +
+  # geom_line(aes(y = thresh_2x, col = "Strong"), size = 0.5, linetype = "dotted") +
+  # geom_line(aes(y = thresh_3x, col = "Severe"), size = 0.5, linetype = "dotted") +
+  # geom_line(aes(y = thresh_4x, col = "Extreme"), size = 0.5, linetype = "dotted") +
+  # geom_line(aes(y = seas, col = "Climatology"), size = 0.5) +
+  # geom_line(aes(y = thresh, col = "Moderate"), size = 0.5,linetype= "dotted") +
+  #geom_line(aes(y = temp, col = "Temperature"), size = 0.5) +
   scale_colour_manual(name = NULL, values = lineColCat,
                       breaks = c("Temperature", "Climatology", "Moderate",
                                  "Strong", "Severe", "Extreme")) +
+  scale_colour_manual(name = NULL, values = lineColCat,
+                      breaks = c("Temperature", "Baseline", "Moderate (1x Threshold)"),guide=FALSE) +
+  scale_fill_manual(name = "Heatwave\nIntensity", values = c(Extreme,Severe,Strong,Moderate),labels=c("Extreme","Severe","Strong","Moderate")#, guide = FALSE
+  ) +
   #scale_fill_manual(name = NULL, values = fillColCat, guide = FALSE) +
-  scale_fill_manual(name = "Heatwave\nIntensity", values = fillColCat, labels=c("Moderate","Strong","Severe","Extreme")) +
-  scale_x_date(date_labels = "%b %Y",expand=c(0.01,0)) +
+  # scale_fill_manual(name = "Heatwave\nIntensity", values = fillColCat, labels=c("Moderate","Strong","Severe","Extreme")) +
+  # scale_x_date(date_labels = "%b %Y",expand=c(0.01,0)) +
 #  scale_fill_manual(name = "Heatwave\nIntensity", values = c(Extreme,Severe,Strong,Moderate),labels=c("Extreme","Severe","Strong","Moderate")#, guide = FALSE
 #  ) +
 #  guides(colour = guide_legend(override.aes = list(linetype = c("solid", "solid", "dotted",
 #                                                                "dotted", "dotted", "dotted"),
 #                                                   size = c(0.6, 0.7, 0.7, 0.7, 0.7, 0.7)),
 #                               ncol=6)) +
-  guides(color=FALSE)+
+  guides(color="none")+
   labs(y = "Sea Surface Temperature (°C)", x = NULL) + 
  # theme(legend.position="none") +
   facet_wrap(~region,ncol=1,scales="free_y") +
