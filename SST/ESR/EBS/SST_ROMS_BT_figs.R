@@ -148,7 +148,7 @@ mylegy <- 0.865
 ####-------------------------------------------------------------####
 
 #  Define the Bering Sea dataset
-BSupdateddata <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Southeastern%20Bering%20Sea,Northern%20Bering%20Sea&start_date=19850101&end_date=20231231'), type = "application/json") %>% 
+BSupdateddata <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Southeastern%20Bering%20Sea,Northern%20Bering%20Sea&start_date=19850101&end_date=20230831'), type = "application/json") %>% 
   bind_rows %>% 
   mutate(date=as_date(READ_DATE)) %>% 
   data.frame %>% 
@@ -684,24 +684,23 @@ ROMSdata3$domain<-fct_relevel(ROMSdata3$domain, c("outer", "middle", "inner"))
 
 pb5<-ggplot() +
   geom_line(data=ROMSdata3 %>% filter(year2<last.year), # Older years are grey lines.
-            aes(newdate,temp,group=factor(year2),col='#ACDDF1'),size=0.3) +
+            aes(newdate,temp,group=factor(year2),col='mygrey'),size=0.3) +
   geom_line(data=ROMSdata3 %>% filter(year2==last.year), # The previous year
-            aes(newdate,temp,color='#FF8300'),size=1) +
+            aes(newdate,temp,color='last.year.color'),size=1) +
   geom_line(data=ROMSdata3 %>% 
               filter(year2%in%mean.years) %>% # The mean from 1986-2015
               #group_by(eco2,newdate) %>% 
               group_by(eco_short, domain,newdate) %>% 
               summarise(meantemp=mean(temp,na.rm=TRUE)),
-            aes(newdate,meantemp, col='#007934'), size=1,linetype="solid") +
+            aes(newdate,meantemp, col='mean.color'), size=1,linetype="solid") +
   geom_line(data=ROMSdata3 %>% filter(year2==current.year), # the current year
-            aes(newdate,temp,group=factor(year2),color='#B2292E'),size=0.75) +
+            aes(newdate,temp,group=factor(year2),color='current.year.color'),size=0.75) +
   #facet_wrap(~eco2,ncol=1) +
   facet_grid(rows=vars(eco_short), cols=vars(domain)) +
   scale_color_manual(name="",
-                     breaks=c('#B2292E','#FF8300','#ACDDF1','#007934'),
-                     values=c('#B2292E','#FF8300','#ACDDF1','#007934'),
-                     #values=c('current.year.color'=current.year.color,'last.year.color'=last.year.color,'mygrey'=SeagrassGreen4,'mean.color'=mean.color),
-                     labels=c(current.year,last.year,paste0('1985-',last.year-1),mean.lab)) +
+                     breaks=c('current.year.color','last.year.color','mygrey','mean.color'),
+                     values=c('current.year.color'=current.year.color,'last.year.color'=last.year.color,'mygrey'=SeagrassGreen4,'mean.color'=mean.color),
+                     labels=c(current.year,last.year,paste0('1986-',last.year-1),mean.lab)) +
   scale_linetype_manual(values=c("solid","solid","solid","dashed")) +
   #scale_y_continuous(labels=scaleFUN)+
   ylim(c(-2,13))+

@@ -7,6 +7,7 @@ library(magrittr)
 library(ggridges)
 library(odbc)
 library(getPass)
+library(cowplot)
 
 #  Load 508 compliant NOAA colors
 OceansBlue1='#0093D0'
@@ -107,6 +108,69 @@ data %>%
   scale_y_continuous(expand=c(0,0.2)) + 
   scale_x_continuous(expand=c(0,6)) 
 dev.off()
+
+####------------------------------------------------------####
+# plot AMJ time series
+
+#load 508 complient colors
+current.year.color <- "black"
+last.year.color <- '#4C9C2E'
+mean.color <- '#1ECAD3'
+old.years.color<-'#D0D0D0'
+
+
+#  Specify legend position coordinates
+mylegx <- 0.3
+mylegy <- 0.865
+
+current.year <- max(data$year)
+last.year <- current.year-1
+mean.years <- 1998:last.year
+mean.lab <- paste0("Mean 1998-",last.year)
+
+theme_set(theme_cowplot())
+
+png("ESR/2023/Chla_annual_lines.png",width=7,height=5,units="in",res=300)
+ggplot() +
+  geom_line(data=data %>% filter(year<last.year),
+            aes(doy,meanchla,group=factor(year),col='old.years.color'),size=0.3) +
+  geom_line(data=data %>% filter(year==last.year),
+            aes(doy,meanchla,color='last.year.color'),size=0.75) +
+  geom_line(data=data %>% 
+              filter(year%in%mean.years) %>% 
+              group_by(ecosystem_subarea, doy) %>% 
+              summarise(meanchla=mean(meanchla,na.rm=TRUE)),
+            aes(doy,meanchla,col='mean.color'),size=0.75) +
+  geom_line(data=data %>% filter(year==current.year),
+            aes(doy,meanchla,color='current.year.color'),size=0.95) +
+  facet_wrap(~ecosystem_subarea ,ncol=2) + 
+  scale_color_manual(name="",
+                     breaks=c('current.year.color','last.year.color','old.years.color','mean.color'),
+                     values=c('current.year.color'=current.year.color,'last.year.color'=last.year.color,'old.years.color'=old.years.color,'mean.color'=mean.color),
+                     labels=c(current.year,last.year,paste0('1998-',last.year-1),mean.lab)) +
+  ylab("mean Chla (ug/L)") + 
+  xlab("") +
+  scale_x_continuous(breaks=c(91,121,152), labels=c("Apr", "May", "Jun"))+
+  # scale_x_date(date_breaks="1 month",
+  #              date_labels = "%b",
+  #              expand = c(0.025,0.025)) + 
+  theme(legend.position=c(mylegx,mylegy),
+        legend.text = element_text(size=8,family="sans"),
+        legend.background = element_blank(),
+        legend.title = element_blank(),
+        strip.text = element_text(size=10,color="white",family="sans",face="bold"),
+        strip.background = element_rect(fill=OceansBlue2),
+        axis.title = element_text(size=10,family="sans"),
+        axis.text = element_text(size=10,family="sans"),
+        #panel.border=element_rect(colour="black",size=0.75),
+       # axis.text.x=element_text(color=c("black",NA,NA,"black",NA,NA,"black",NA,NA,"black",NA,NA,NA)),
+        legend.key.size = unit(0.35,"cm"),
+        plot.margin=unit(c(0.65,0,0.65,0),"cm")) 
+dev.off()
+
+
+####------------------------------------------------------####
+# extra code for adding value to text
 
 data %>% 
   filter(doy>=50 & doy<=180 & year==2022) %>% 
