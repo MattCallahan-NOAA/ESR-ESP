@@ -225,33 +225,32 @@ dev.off()
 
 
 ####------------------------------------------------------####
-# extra code for adding value to text
 
-data %>% 
-  filter(doy>=50 & doy<=180 & year==2022) %>% 
-  group_by(ecosystem_subarea) %>% 
-  mutate(mymax=doy[meanchla==max(meanchla)][1])%>%
-  print(n=Inf)
 
+# extra code for adding peak timing to text
+
+#get peak bloom for 2023
 data %>% 
-  filter(doy>=50 & doy<=180) %>% 
+  filter(doy>=50 & doy<=180 & year==2023) %>% 
   group_by(ecosystem_subarea,year) %>% 
   summarise(mymax=doy[meanchla==max(meanchla)][1]) %>% 
   group_by(ecosystem_subarea) %>% 
-  summarise(mean(mymax))
+  summarise(peak_bloom=mean(mymax))
 
+#get values for 2023 at each of those dates
 data %>% 
-  filter(doy%in%c(189,117) & year==2022) %>% 
+  filter(doy%in%c(157,133) & year==2023) %>% 
   group_by(ecosystem_subarea) %>% 
   mutate(mymax=doy[meanchla==max(meanchla)][1])
 
+# get the mean chla for all years
 data%>%
   filter(month %in% (4:6))%>%
   group_by(year,ecosystem_subarea)%>%
   summarize(annual_meanchla=mean(meanchla))%>%
   print(n=Inf)
 
-
+####------------------------------------------------------####
 #  Rescaled version of heatmap
 dailydat <- data %>% 
   filter(month%in%(3:8)) %>% 
