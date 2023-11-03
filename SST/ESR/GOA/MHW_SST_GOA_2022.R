@@ -71,8 +71,8 @@ mylegy <- 0.865
 
 current.year <- max(newdat$year)
 last.year <- current.year-1
-mean.years <- 1985:2014
-mean.lab <- "Mean 1985-2014"
+mean.years <- 1985:2015
+mean.lab <- "Mean 1985-2015"
 
 png("GOA/2023/Callahan_Fig1.png",width=7,height=5,units="in",res=300)
 ggplot() +
@@ -122,12 +122,12 @@ dev.off()
 mhw <- (detect_event(ts2clm(newdat %>%
                               filter(Ecosystem_sub=="Western Gulf of Alaska") %>% 
                               rename(t=date,temp=meansst) %>% 
-                              arrange(t), climatologyPeriod = c("1985-12-01", "2014-11-30"))))$clim %>% 
+                              arrange(t), climatologyPeriod = c("1985-12-01", "2015-11-30"))))$clim %>% 
   mutate(region="Western Gulf of Alaska") %>% 
   bind_rows((detect_event(ts2clm(newdat %>%
                                    filter(Ecosystem_sub=="Eastern Gulf of Alaska") %>% 
                                    rename(t=date,temp=meansst) %>% 
-                                   arrange(t), climatologyPeriod = c("1985-12-01", "2014-11-30"))))$clim %>% 
+                                   arrange(t), climatologyPeriod = c("1985-12-01", "2015-11-30"))))$clim %>% 
               mutate(region="Eastern Gulf of Alaska"))
 
 
@@ -440,7 +440,7 @@ mhw_goa2%>%ggplot()+
     dev.off()
     
     png("GOA/2023/goa_mhw_by_status_1day.png", width=9,height=4.5,units="in",res=300)
-    count_by_mhw_d(mhw_goa2_5)
+    count_by_mhw_d(mhw_goa2)
     dev.off()
     
     #need to updarte legend
