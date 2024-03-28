@@ -162,7 +162,7 @@ sum_bl_sub<-subset(sum_bl,bsierp_super_region %in% c("South inner shelf","South 
 head(sum_bl_sub)
 
 
-write.csv(sum_bl_sub,file='inter_jens_datafiles/bloom_timing_superRegions_forDaveSEP2023.csv') 
+#write.csv(sum_bl_sub,file='inter_jens_datafiles/bloom_timing_superRegions_forDaveSEP2023.csv') 
 
 
 
@@ -244,7 +244,7 @@ ggplot(sat,aes(avg_peak, year)) +
   geom_vline(data= long_termavg, aes(xintercept=avg_peak), linetype="dashed", color = "black",size=1)+
   facet_wrap(bsierp_super_region~.,ncol=3,labeller =as_labeller(jens_names_fig4)) +
   xlim(70, 190)+
-  scale_y_continuous(limits = c(1998,2023), breaks = (1998:2023))+
+  scale_y_continuous(limits = c(1998,2023), breaks = seq(1998,2023,2))+
   geom_point(data= sat, aes(x=avg_peak,y=year), color = "black",size=3,pch=15,alpha=1)+
   geom_errorbar(data= sat, aes(y=year,xmin=avg_peak-sd_peak, xmax=avg_peak+sd_peak), width=.3,col='black',alpha=1)+
   geom_point(data= mooring, aes(x=prim_hybrid,y=year), color = "dodgerblue",size=3,pch=19,alpha=0.7)+
