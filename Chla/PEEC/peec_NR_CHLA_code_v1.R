@@ -6,6 +6,10 @@ library(ncdf4)
 library(tidync)
 library(dplyr)
 library(lubridate)
+library(scales)
+library(cmocean)
+
+
 
 rm(list = ls()) 
 
@@ -13,10 +17,10 @@ rm(list = ls())
 info_NR_chla<-rerddap::info(datasetid = "nesdisVHNchlaWeekly", url = "https://coastwatch.pfeg.noaa.gov/erddap/")
 
 #basin_dims
-min_long<- (-173)
-max_long<- (-165)
-min_lat<- (58)
-max_lat<- (62)
+min_long<- (-179)
+max_long<- (-155)
+min_lat<- (55)
+max_lat<- (66)
 
 
 # 
@@ -30,13 +34,18 @@ df$dates<-as.Date(df$time)
 dummy_2nd_last_day<-df$dates[1]-days(1)
 # getting all data for 2024 (This should be just once)
 # note i set the last date 
-all_ts_chla_2024 <- griddap(info_NR_chla, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c('2024-02-10',paste(dummy_2nd_last_day)), fields = 'chlor_a')
-data_ts24<-as.data.frame(all_ts_chla_2024$data)
-data_ts24$dates<-as.Date(data_ts24$time)
+
+# matt you need to run this obvuiously once 
+#all_ts_chla_2024 <- griddap(info_NR_chla, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c('2024-02-10',paste(dummy_2nd_last_day)), fields = 'chlor_a')
+#data_ts24<-as.data.frame(all_ts_chla_2024$data)
+#data_ts24$dates<-as.Date(data_ts24$time)
+#saveRDS(data_ts24,file='inter_jens_datafiles/data_NR_chla_spring2024.RDS')
+
+data_ts24<-readRDS('inter_jens_datafiles/data_NR_chla_spring2024.RDS')
 range(data_ts24$dates)
 
 # once setup we should just store all_ts_chla_2024 internally and call it as RDS?
-
+table(is.na(all$time))
 
 
 # combining "long-terrm data" and "last day data" 
@@ -46,9 +55,12 @@ all<-data.frame(rbind(data_ts24,df) )
 range(all$dates)
 #table(is.na(all$chlor_a),all$dates)
 
+head(all)
 # removing crzay high chl values #
-all<-all[all$chlor_a<30,]
+all$chlor_a[all$chlor_a>30]<-NA
 
+head(all)
+tail(all)
 hm<- all %>% group_by(dates) %>% summarise(non_na_count = sum(!is.na(chlor_a)))
 
 
@@ -78,29 +90,50 @@ date_for_plot<-(c(max1,max2,max3,max4))
 date_for_plot<-date_for_plot[order(date_for_plot)]
 str(date_for_plot)
 
-latest_date<-df$dates[1]
+########################################
+### getting ice data for select dates 
+########################################
+info_coral<-rerddap::info(datasetid = "NOAA_DHW", url = "https://coastwatch.pfeg.noaa.gov/erddap/")
 
+
+str(date_for_plot[1])
+
+ice1 <- griddap(info_coral, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c(paste(date_for_plot[1]),paste(date_for_plot[1])), fields = 'CRW_SEAICE')
+ice2 <- griddap(info_coral, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c(paste(date_for_plot[2]),paste(date_for_plot[2])), fields = 'CRW_SEAICE')
+ice3 <- griddap(info_coral, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c(paste(date_for_plot[3]),paste(date_for_plot[3])), fields = 'CRW_SEAICE')
+ice4 <- griddap(info_coral, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c(paste(date_for_plot[4]),paste(date_for_plot[4])), fields = 'CRW_SEAICE')
+
+ice<-data.frame(rbind(ice1$data,ice2$data,ice3$data,ice4$data))
+ice$dates<-as.Date(ice$time)
+head(ice)
+
+
+# setting up plot 
+latest_date<-df$dates[1]
 all_sub<-all[all$dates %in% date_for_plot,]
 
 # plot can be improved # 
+w <- map_data("world2Hires", ylim = c(55, 66), xlim = c(-175+360, -155+360))
+breaks_w2<-c(185,190,195,200) # working with 0-360 lons - helpful across the dateline. We can change that.
+labels_w2<-breaks_w2-360 #
 
-mycolor <- colors$temperature
-w <- map_data("worldHires", ylim = c(55, 66), xlim = c(-170, -155))
-
-maps_plot1<- ggplot(data = all_sub, aes(x = longitude, y = latitude, fill =sqrt(chlor_a))) +
+# making map plots - we can tweak this
+maps_plot1<- ggplot() +
+  geom_point(data = all_sub, aes(x = longitude+360, y = latitude, color =sqrt(chlor_a)),pch=15) +
+  scale_color_gradientn(colours = (cmocean('algae')(200)),name = "") +
+  geom_raster(data = ice, aes(x = longitude+360, y = latitude, fill =(CRW_SEAICE)),interpolate = FALSE) +
+  scale_fill_gradientn(colours = (cmocean('ice')(200)),name = "",na.value="transparent") +
   geom_polygon(data = w, aes(x = long, y = lat, group = group), fill = "grey80") +
-  geom_raster(interpolate = FALSE) +
-  scale_fill_gradientn(colours = mycolor, na.value = NA) +
+  scale_x_continuous("Longitude", breaks=breaks_w2, labels=labels_w2, limits=c(140,250))+
   theme_bw() + ylab("latitude") + xlab("longitude") +
   facet_wrap(.~dates,ncol=2)+
-  coord_fixed(1.3, xlim = c(-170, -155),  ylim = c(55, 66)) + ggtitle('Chla Bering Sea')
+  coord_fixed(1.3, xlim = c(-179+360, -155+360),  ylim = c(55, 66)) + ggtitle('Chla Bering Sea')
 
-windows(10,8)
+
+windows(8,10)
 maps_plot1
 
 # time series #
-# I have not grouped this into north and south. And we want to mask out the inner shelf. Could just pick certain bsierp regions? We can talk
-
 # dummy N and S
 all$N_S<-'north'
 all$N_S[all$latitude<60.00]<-'south'
@@ -108,8 +141,30 @@ all$N_S[all$latitude<60.00]<-'south'
 avg_chla<- all %>% group_by(N_S,dates) %>%arrange(dates) %>% summarize(mean_chl = mean(chlor_a,na.rm=TRUE),
                                                                        sd_chl = sd(chlor_a,na.rm=TRUE))
 
+head(all)
+
+head(avg_chla)
+timeseries_chlaNR<-ggplot(avg_chla, aes(x = dates, y = mean_chl )) +
+  geom_ribbon(aes(ymin = mean_chl  - sd_chl, ymax = mean_chl  + sd_chl), alpha = 0.3) +
+  geom_line()+  
+  xlab('Dates')+
+  scale_x_date(date_breaks = "1 month", 
+               labels=date_format("%b-%Y"),
+               limits = as.Date(c('2024-01-01','2024-06-01')))+
+  ylab('Chla [ug / l]')+
+  theme(plot.title = element_text(size = 10),
+        strip.text = element_text(size=10,color="white",family="sans",face="bold"),
+        strip.background = element_rect(fill='dodgerblue'), # Add the NOAA color blue to the facet strips.
+        axis.title = element_text(size=10,family="sans"),
+        axis.text = element_text(size=10,family="sans",color='black'),
+        panel.background=element_blank(),
+        panel.border=element_rect(color="black",fill=NA),
+        axis.text.x=element_text(color="black"),
+        legend.title = element_text(size=10))+
+  facet_wrap(.~N_S,ncol=1,scales = "free") # 
+
+windows(8,10)
+timeseries_chlaNR
 
 
-
-
-
+gc()
