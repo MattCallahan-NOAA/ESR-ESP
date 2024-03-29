@@ -1,0 +1,52 @@
+---
+title: "2023 chla indicator validation"
+author: "Matt Callahan"
+format: html
+editor: visual
+---
+
+## Purpose
+
+This document presents comparison of 2023 ESP indicators calculated with viirs and globcolour products. It has come to our attention that MODIS chla data was deemed unreliably low beginning in 2023. AFSC switched from using MODIS to the globcolour blended product for ESP and ESR contributions in 2023 as MODIS depreciation was expected eventually. However, we are uncertain if the globcolour algorithm incorporated MODIS data in 2023.
+
+2023 chla values were among the lowest in the time series. To ensure this trend was not an artifact of switching products, the authors informally compared the same indicator calculations using viirs to the presented values calculated with globcolour. Values were generally low with the viirs product and authors deemed that the low chla trend was present regardless of product and proceeded with our contributions. This is NOT meant to be a general comparison of chla trends over time between products.
+
+## Results
+
+Calculation of indicators with viirs can be found at <https://github.com/MattCallahan-NOAA/chla-indicator-comparison/blob/main/2023_viirs_esp_indicators.R>
+
+Calculations of indicators with globcolour can be found at <https://github.com/MattCallahan-NOAA/ESR-ESP/blob/main/Chla/ESP/2023_indicators/Callahan_ESP_indicators_2023.Rmd>
+
+```{r message=FALSE, fig.width=6, fig.asp=2, fig.cap= "Globcolour (black) and viirs (red) indicator comparison"}
+
+library(tidyverse)
+library(httr)
+library(jsonlite)
+#load viirs indicators
+viirs<-readRDS("viirs_indicators_2023.RDS")
+
+#function to download 2023 ESP indicators from the AKFIN db
+get_my_indicator <- function (name) {
+httr::content(httr::GET("https://apex.psmfc.org/akfin/data_marts/akmp/esp_indicators?"),
+                     type = "application/json") %>%
+  dplyr::bind_rows() %>%
+  rename_with(tolower) %>%
+  filter(contact==name)
+}
+
+my_indicator<-get_my_indicator("Matt Callahan")
+
+glob <- my_indicator %>%
+  filter(indicator_name %in% c("AMJ_Chlorophylla_Biomass_SEBS_Satellite",          "Spring_Chlorophylla_Biomass_SEBS_Inner_Shelf_Satellite",
+"Spring_Chlorophylla_Biomass_SMBKC_Satellite",           
+"Spring_Chlorophylla_Biomass_GOA_Satellite",             
+"Spring_Chlorophylla_Biomass_WCGOA_Satellite"))
+
+ggplot()+
+  geom_line(data=glob, aes(x=year, y=data_value), color="black")+
+  geom_line(data=viirs, aes(x=year, y=mean_viirs), color="red")+
+  facet_wrap(~indicator_name, ncol=1, scales="free")+
+
+  theme_bw()
+
+```
