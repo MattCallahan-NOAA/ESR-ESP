@@ -36,12 +36,12 @@ dummy_2nd_last_day<-df$dates[1]-days(1)
 # note i set the last date 
 
 # matt you need to run this obvuiously once 
-#all_ts_chla_2024 <- griddap(info_NR_chla, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c('2024-02-10',paste(dummy_2nd_last_day)), fields = 'chlor_a')
-#data_ts24<-as.data.frame(all_ts_chla_2024$data)
-#data_ts24$dates<-as.Date(data_ts24$time)
-#saveRDS(data_ts24,file='inter_jens_datafiles/data_NR_chla_spring2024.RDS')
+# all_ts_chla_2024 <- griddap(info_NR_chla, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c('2024-02-10',paste(dummy_2nd_last_day)), fields = 'chlor_a')
+# data_ts24<-as.data.frame(all_ts_chla_2024$data)
+# data_ts24$dates<-as.Date(data_ts24$time)
+# saveRDS(data_ts24,file='data/viirs/data_NR_chla_spring2024.RDS')
 
-data_ts24<-readRDS('inter_jens_datafiles/data_NR_chla_spring2024.RDS')
+data_ts24<-readRDS('data/viirs/data_NR_chla_spring2024.RDS')
 range(data_ts24$dates)
 
 # once setup we should just store all_ts_chla_2024 internally and call it as RDS?
@@ -107,6 +107,8 @@ ice<-data.frame(rbind(ice1$data,ice2$data,ice3$data,ice4$data))
 ice$dates<-as.Date(ice$time)
 head(ice)
 
+saveRDS(ice, "data/ice_latest.RDS")
+
 
 # setting up plot 
 latest_date<-df$dates[1]
@@ -168,3 +170,107 @@ timeseries_chlaNR
 
 
 gc()
+
+
+#### Matt edits ####
+#### get weekly averages for 2012-2023 ####
+
+#download by year
+myyear <- 2013:2023
+for(i in myyear){
+  file_name <- paste0("data/viirs/viirs_",i,"_e.nc")
+  download.file(url = paste0("https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNSQchlaWeekly.nc?chlor_a%5B(",
+                             i,"-02-10T00:00:00Z):(", i,"-10-31T12:00:00Z)%5D%5B(0.0):1:(0.0)%5D%5B(",min_lat,"):1:(",max_lat,")%5D%5B(",min_long,"):1:(",max_long,")%5D"),
+                method = "libcurl", mode="wb",destfile = file_name)
+}
+
+# function to bring into data frame
+tidy_chl<-function(file) {
+  tidync(file) %>% 
+    hyper_tibble() %>% 
+    mutate(date=as_datetime(time),
+           read_date=as.character(date),
+           year=year(date),
+           # month=month(date),
+           # lon360=longitude,
+           longitude=ifelse(longitude<180, longitude, longitude-360),
+           join_lon=as.numeric(ifelse(longitude<0, #ifelse statement keeps +- lons the same length
+                                  substr(longitude,1,8),
+                                  substr(longitude,1,7))), 
+           join_lat=as.numeric(substr(latitude,1,6)), 
+           chlorophyll=round(chlor_a,3)) %>%
+    dplyr::select(read_date, year, join_lon, join_lat, chlorophyll)
+}
+# join with lookup table (year by year)
+viirs_lkp <-readRDS("data/viirs/viirs_lkp_122623.RDS")
+
+join_fun <- function(data) {
+  data %>%
+    inner_join(viirs_lkp %>% dplyr::select(join_latitude, join_longitude, depth, ecosystem_subarea), by=c("join_lat"="join_latitude", "join_lon"="join_longitude"))
+}
+
+# filter for shelf (20-200m)
+# average for ESR subregions
+aggregate_fun <- function(data) {
+  data %>%
+    filter(depth < -20 & depth > -200 & ecosystem_subarea %in% c("Southeastern Bering Sea", "Northern Bering Sea")) %>%
+    group_by(read_date, year, ecosystem_subarea) %>%
+    summarize(mean_chla=mean(chlorophyll, na.rm=TRUE))
+}
+
+# combine averages
+# test with 2013
+# t13 <- tidy_chl("data/viirs/viirs_2013_e.nc")
+# max(t13$join_lat)
+# nrow(t13 %>% filter(chlorophyll >0))
+# t13 %>%
+#   group_by(read_date) %>%
+#   summarize(n=n())
+# t13 <- t13 %>% join_fun()
+# t13 <- t13 %>% aggregate_fun()
+
+weekly_avg_chl <- lapply(myyear, FUN=function(x) 
+  tidy_chl(paste0("data/viirs/viirs_",x,"_e.nc")) %>%
+    join_fun() %>%
+    aggregate_fun()) %>%
+  bind_rows()
+         
+saveRDS(weekly_avg_chl, "data/viirs/viirs_weekly_avg_2013_2023.RDS")
+
+#### add 2024 to the time series ####
+weekly_avg_chl <- readRDS("data/viirs/viirs_weekly_avg_2013_2023.RDS")
+
+data_ts24 <-readRDS("data/viirs/data_NR_chla_spring2024.RDS")
+
+data_ts24_sum <- data_ts24 %>%
+  mutate(read_date = as.character(dates),
+         year = year(dates),
+         join_lon=as.numeric(ifelse(longitude<0, #ifelse statement keeps +- lons the same length
+                                    substr(longitude,1,8),
+                                    substr(longitude,1,7))), 
+         join_lat=as.numeric(substr(latitude,1,6)),
+         chlorophyll=round(chlor_a,3)) %>%
+  join_fun()%>%
+  aggregate_fun()
+
+latest_ts <-weekly_avg_chl %>%
+  bind_rows(data_ts24_sum)
+
+saveRDS(latest_ts, "data/viirs/viirs_latest_ts.RDS")
+
+  
+# Is there a lag in the R package
+
+#This pulls later data than the R package!
+download.file(url = paste0("https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNchlaWeekly.nc?chlor_a%5B(last)%5D%5B(0.0):1:(0.0)%5D%5B(",min_lat,"):1:(",max_lat,")%5D%5B(",min_long,"):1:(",max_long,")%5D"),
+              method = "libcurl", mode="wb",destfile = "data/viirs/viirs_latest.nc")
+
+viirs_latest_nc <-tidy_chl("data/viirs/viirs_latest.nc")
+
+
+# redo 2024 pull using the url?
+download.file(url = paste0("https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNchlaWeekly.nc?chlor_a%5B(2024-02-10T00:00:00Z):(2024-03-23T12:00:00Z)%5D%5B(0.0):1:(0.0)%5D%5B(",min_lat,"):1:(",max_lat,")%5D%5B(",min_long,"):1:(",max_long,")%5D"),
+              method = "libcurl", mode="wb",destfile = "data/viirs/viirs_2024_initial.nc")
+
+
+# Huh as of April 4 the values match so I will stick with the pacage.
