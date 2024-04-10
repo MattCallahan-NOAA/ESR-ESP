@@ -22,6 +22,7 @@ data_2024 <- readRDS('data/viirs/data_NR_chla_spring2024.RDS')
 
 # identify max date
 max_date <- max(data_2024$dates)
+new_start <-as.character(max_date+1)
 
 # download new data
 # download.file(url = paste0("https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNchlaWeekly.nc?chlor_a%5B(last)%5D%5B(0.0):1:(0.0)%5D%5B(",min_lat,"):1:(",max_lat,")%5D%5B(",min_long,"):1:(",max_long,")%5D"),
@@ -31,7 +32,7 @@ max_date <- max(data_2024$dates)
 info_NR_chla<-rerddap::info(datasetid = "nesdisVHNchlaWeekly", url = "https://coastwatch.pfeg.noaa.gov/erddap/")
 
 # 
-recent_day_chl <- griddap(info_NR_chla, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c(max_date+1,'last'), fields = 'chlor_a')
+recent_day_chl <- griddap(info_NR_chla, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c(new_start,'last'), fields = 'chlor_a')
 
 df<-as.data.frame(recent_day_chl$data)
 df$dates<-as.Date(df$time)
@@ -52,20 +53,24 @@ data_2024 <- update_fun(old_df=data_2024, new_df = df)
 saveRDS(data_2024, "data/viirs/data_NR_chla_spring2024.RDS")
 
 # choose days to plot
+new_max_date <- max(data_2024$dates)
 # filter to last 6 weeks
 pixel_counts <- data_2024 %>%
-  filter(dates > Sys.Date()-42) %>%
+  filter(dates > new_max_date-42) %>%
   filter(chlor_a >0) %>%
   group_by(dates) %>%
   summarize(pixel_count=n())
 
+# One day will be within the last week
+pixel_counts_latest <- pixel_counts %>%
+  filter(dates > new_max_date-7)
+d1<-pixel_counts_latest[which.max(pixel_counts_latest$pixel_count),]$dates
+
 #define desired spacing (on either side)
 dx <- 3
 
-d1<-pixel_counts[which.max(pixel_counts$pixel_count),]$dates
-
 pixel_counts <- pixel_counts %>%
-  filter(dates > d1+dx | dates < d1-dx)
+  filter(dates < d1-dx)
 
 d2 <- pixel_counts[which.max(pixel_counts$pixel_count),]$dates
 
@@ -160,7 +165,7 @@ update_fun2 <- function(old_df, new_df) {
 
 ts_avg <- update_fun2(old_df=ts_avg, new_df = df2)
   
-saveRDS(data_new, "data/viirs/viirs_latest_ts.RDS")
+saveRDS(ts_avg, "data/viirs/viirs_latest_ts.RDS")
 
 #process for plotting
 data <-ts_avg %>%
@@ -184,6 +189,11 @@ old.years.color<-'#D0D0D0'
 mylegx <- 0.3
 mylegy <- 0.865
 
+# set up latest date label
+ann_text <- data.frame(doy = 100, mean_chla = 6, 
+                       lab = paste0("Last date: ", new_max_date),
+                       ecosystem_subarea = factor("Southeastern Bering Sea"), 
+                       levels = c("Northern Bering Sea", "Southeastern Bering Sea"))
 
 # plot
 png("PEEC/www/Chla_annual_lines.png",width=7,height=5,units="in",res=300)
@@ -199,6 +209,7 @@ ggplot() +
             aes(doy,meanchla,col='mean.color'),size=0.75) +
   geom_line(data=data %>% filter(year==current.year),
             aes(doy,mean_chla,color='current.year.color'),size=0.95) +
+  geom_text(data=ann_text, aes(doy,mean_chla), label = paste0("Last date: ", new_max_date))+
   facet_wrap(~ecosystem_subarea ,ncol=2) + 
   scale_color_manual(name="",
                      breaks=c('current.year.color','last.year.color','old.years.color','mean.color'),
