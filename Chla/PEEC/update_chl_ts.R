@@ -12,13 +12,14 @@ library(cmocean)
 
 
 # set download extent
-min_long<- (-179)
-max_long<- (-155)
+min_long<- (-179)#+360
+max_long<- (-155)#+360
 min_lat<- (55)
 max_lat<- (66)
 
 # load previous 2024 data
 data_2024 <- readRDS('data/viirs/data_NR_chla_spring2024.RDS')
+#data_2024 <- readRDS('inter_jens_datafiles/data_NR_chla_spring2024.RDS') # //  sorry needed this to be able to load olld plots
 
 # identify max date
 max_date <- max(data_2024$dates)
@@ -49,9 +50,13 @@ update_fun <- function(old_df, new_df) {
 #update
 data_2024 <- update_fun(old_df=data_2024, new_df = df)
 
+
 #save
 saveRDS(data_2024, "data/viirs/data_NR_chla_spring2024.RDS")
 
+# jens internal save 
+#saveRDS(data_2024, "inter_jens_datafiles/data_NR_chla_spring2024.RDS")
+unique(data_2024$dates)
 # choose days to plot
 new_max_date <- max(data_2024$dates)
 # filter to last 6 weeks
@@ -98,24 +103,53 @@ ice4 <- griddap(info_coral, latitude = c(min_lat, max_lat), longitude = c(min_lo
 
 ice<-data.frame(rbind(ice1$data,ice2$data,ice3$data,ice4$data))
 ice$dates<-as.Date(ice$time)
-
+unique(ice$dates)
 # world
 # plot can be improved # 
 w <- map_data("world2Hires", ylim = c(55, 66), xlim = c(-175+360, -155+360))
 breaks_w2<-c(185,190,195,200) # working with 0-360 lons - helpful across the dateline. We can change that.
 labels_w2<-breaks_w2-360 #
 
-# making map plots - we can tweak this
-maps_plot1<- ggplot() +
-  geom_point(data = plot_chla, aes(x = longitude+360, y = latitude, color =sqrt(chlor_a)),pch=15) +
-  scale_color_gradientn(colours = (cmocean('algae')(200)),name = "") +
-  geom_raster(data = ice, aes(x = longitude+360, y = latitude, fill =(CRW_SEAICE)),interpolate = FALSE) +
-  scale_fill_gradientn(colours = (cmocean('ice')(200)),name = "",na.value="transparent") +
+table(plot_chla$dates,is.na(plot_chla$chlor_a))
+
+
+ice_s<-ice[ice$CRW_SEAICE>0.0999,] # test - cutting out pixels with less than 10 % ice percentage. Might make sense - as this is normally our cutoff for Chl-a. I.e. Chla removed if ice is higher than 10 %
+ice_s<-ice_s[complete.cases(ice_s$dates),]
+# new plot 
+windows(20,15)
+#maps_plot1<-
+ggplot() +
+  geom_point(data = plot_chla, aes(x = longitude+360, y = latitude, color =(chlor_a)),pch=19) +
+  scale_color_gradientn(colours = (cmocean('thermal')(200)),name = "Chl-a [ug/l]", trans = "pseudo_log",limits=c(0.01,20)) +
+  geom_raster(data = ice_s, aes(x = longitude+360, y = latitude, fill =(CRW_SEAICE)),interpolate = TRUE,color='white') +
+  scale_fill_gradientn(colours = (cmocean('ice')(200)),name = "Ice fraction",na.value="transparent") +
   geom_polygon(data = w, aes(x = long, y = lat, group = group), fill = "grey80") +
   scale_x_continuous("Longitude", breaks=breaks_w2, labels=labels_w2, limits=c(140,250))+
   theme_bw() + ylab("latitude") + xlab("longitude") +
   facet_wrap(.~dates,ncol=2)+
-  coord_fixed(1.3, xlim = c(-179+360, -155+360),  ylim = c(55, 66)) + ggtitle('Chla Bering Sea')
+  coord_fixed(1.7, xlim = c(-175+360, -157+360),  ylim = c(55.2, 65.6)) + ggtitle('Chla Bering Sea')+
+  theme(plot.title = element_text(size = 20),
+        strip.text = element_text(size=20,color="black",family="sans"),
+        axis.title = element_text(size=20,family="sans"),
+        axis.text = element_text(size=18,family="sans"),
+        panel.background=element_blank(),
+        panel.border=element_rect(color="black",fill=NA),
+        axis.text.x=element_text(color="black")) 
+
+
+
+
+# making map plots - we can tweak this
+# maps_plot1<- ggplot() +
+#   geom_point(data = plot_chla, aes(x = longitude+360, y = latitude, color =sqrt(chlor_a)),pch=15) +
+#   scale_color_gradientn(colours = (cmocean('algae')(200)),name = "") +
+#   geom_raster(data = ice, aes(x = longitude+360, y = latitude, fill =(CRW_SEAICE)),interpolate = FALSE) +
+#   scale_fill_gradientn(colours = (cmocean('ice')(200)),name = "",na.value="transparent") +
+#   geom_polygon(data = w, aes(x = long, y = lat, group = group), fill = "grey80") +
+#   scale_x_continuous("Longitude", breaks=breaks_w2, labels=labels_w2, limits=c(140,250))+
+#   theme_bw() + ylab("latitude") + xlab("longitude") +
+#   facet_wrap(.~dates,ncol=2)+
+#   coord_fixed(1.3, xlim = c(-179+360, -155+360),  ylim = c(55, 66)) + ggtitle('Chla Bering Sea')
 
 #save
 png("PEEC/www/chla_maps.png", height=14.25, width=18, units="in", res=300)
