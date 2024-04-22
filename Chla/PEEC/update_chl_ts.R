@@ -10,6 +10,15 @@ library(lubridate)
 library(scales)
 library(cmocean)
 
+# Define filepaths. 
+# The shiny server uses a different file structure.
+# By defining these up here I can update the rest of the app without having to change these each update
+nr_ts_fp <- 'data/viirs/data_NR_chla_spring2024.RDS'
+ts_avg_fp <- "data/viirs/viirs_latest_ts.RDS"
+map_fp <- "PEEC/www/chla_maps.png"
+lkp_fp <- "data/viirs/viirs_lkp_122623.RDS"
+lineplot_fp <- "PEEC/www/Chla_annual_lines.png"
+
 
 # set download extent
 min_long<- (-179)#+360
@@ -18,7 +27,7 @@ min_lat<- (55)
 max_lat<- (66)
 
 # load previous 2024 data
-data_2024 <- readRDS('data/viirs/data_NR_chla_spring2024.RDS')
+data_2024 <- readRDS(nr_ts_fp)
 #data_2024 <- readRDS('inter_jens_datafiles/data_NR_chla_spring2024.RDS') # //  sorry needed this to be able to load olld plots
 
 # identify max date
@@ -52,7 +61,7 @@ data_2024 <- update_fun(old_df=data_2024, new_df = df)
 
 
 #save
-saveRDS(data_2024, "data/viirs/data_NR_chla_spring2024.RDS")
+saveRDS(data_2024, nr_ts_fp)
 
 # jens internal save 
 #saveRDS(data_2024, "inter_jens_datafiles/data_NR_chla_spring2024.RDS")
@@ -66,9 +75,9 @@ pixel_counts <- data_2024 %>%
   group_by(dates) %>%
   summarize(pixel_count=n())
 
-# One day will be within the last week
+# One day will be within the last four days
 pixel_counts_latest <- pixel_counts %>%
-  filter(dates > new_max_date-7)
+  filter(dates > new_max_date-4)
 d1<-pixel_counts_latest[which.max(pixel_counts_latest$pixel_count),]$dates
 
 #define desired spacing (on either side)
@@ -115,10 +124,10 @@ table(plot_chla$dates,is.na(plot_chla$chlor_a))
 
 ice_s<-ice[ice$CRW_SEAICE>0.0999,] # test - cutting out pixels with less than 10 % ice percentage. Might make sense - as this is normally our cutoff for Chl-a. I.e. Chla removed if ice is higher than 10 %
 ice_s<-ice_s[complete.cases(ice_s$dates),]
+
 # new plot 
-windows(20,15)
-#maps_plot1<-
-ggplot() +
+#windows(20,15)
+maps_plot1 <- ggplot() +
   geom_point(data = plot_chla, aes(x = longitude+360, y = latitude, color =(chlor_a)),pch=19) +
   scale_color_gradientn(colours = (cmocean('thermal')(200)),name = "Chl-a [ug/l]", trans = "pseudo_log",limits=c(0.01,20)) +
   geom_raster(data = ice_s, aes(x = longitude+360, y = latitude, fill =(CRW_SEAICE)),interpolate = TRUE,color='white') +
@@ -152,16 +161,16 @@ ggplot() +
 #   coord_fixed(1.3, xlim = c(-179+360, -155+360),  ylim = c(55, 66)) + ggtitle('Chla Bering Sea')
 
 #save
-png("PEEC/www/chla_maps.png", height=14.25, width=18, units="in", res=300)
+png(map_fp, height=14.25, width=18, units="in", res=300)
 print(maps_plot1)
 dev.off()
 
 #### Average data ####
 # load previous years data
-ts_avg <- readRDS("data/viirs/viirs_latest_ts.RDS")
+ts_avg <- readRDS(ts_avg_fp)
   
 # join with look up table
-viirs_lkp <-readRDS("data/viirs/viirs_lkp_122623.RDS")
+viirs_lkp <-readRDS(lkp_fp)
 
 join_fun <- function(data) {
   data %>%
@@ -199,7 +208,7 @@ update_fun2 <- function(old_df, new_df) {
 
 ts_avg <- update_fun2(old_df=ts_avg, new_df = df2)
   
-saveRDS(ts_avg, "data/viirs/viirs_latest_ts.RDS")
+saveRDS(ts_avg, ts_avg_fp)
 
 #process for plotting
 data <-ts_avg %>%
@@ -230,7 +239,7 @@ ann_text <- data.frame(doy = 100, mean_chla = 6,
                        levels = c("Northern Bering Sea", "Southeastern Bering Sea"))
 
 # plot
-png("PEEC/www/Chla_annual_lines.png",width=7,height=5,units="in",res=300)
+png(lineplot_fp,width=7,height=5,units="in",res=300)
 ggplot() +
   geom_line(data=data %>% filter(year<last.year),
             aes(doy,mean_chla,group=factor(year),col='old.years.color'),size=0.3) +
