@@ -18,6 +18,7 @@ ts_avg_fp <- "data/viirs/viirs_latest_ts.RDS"
 map_fp <- "PEEC/www/chla_maps.png"
 lkp_fp <- "data/viirs/viirs_lkp_04222024.RDS"
 lineplot_fp <- "PEEC/www/Chla_annual_lines.png"
+coverplot_fp <- "PEEC/www/chla_coverage.png"
 
 
 # set download extent
@@ -118,11 +119,22 @@ plot_chla <- data_2024 %>%
   filter(dates %in% date_for_plot)
 
 # download ice
+min_ice_long<- (-179)
+max_ice_long<- (-155)
+min_ice_lat<- (55)
+max_ice_lat<- (66)
+
 info_coral<-rerddap::info(datasetid = "NOAA_DHW", url = "https://coastwatch.pfeg.noaa.gov/erddap/")
-ice1 <- griddap(info_coral, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c(paste(date_for_plot[1]),paste(date_for_plot[1])), fields = 'CRW_SEAICE')
-ice2 <- griddap(info_coral, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c(paste(date_for_plot[2]),paste(date_for_plot[2])), fields = 'CRW_SEAICE')
-ice3 <- griddap(info_coral, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c(paste(date_for_plot[3]),paste(date_for_plot[3])), fields = 'CRW_SEAICE')
-ice4 <- griddap(info_coral, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c(paste(date_for_plot[4]),paste(date_for_plot[4])), fields = 'CRW_SEAICE')
+ice1 <- griddap(info_coral, latitude = c(min_ice_lat, max_ice_lat), longitude = c(min_ice_long, max_ice_long), time = c(paste(date_for_plot[1]),paste(date_for_plot[1])), fields = 'CRW_SEAICE')
+ice2 <- griddap(info_coral, latitude = c(min_ice_lat, max_ice_lat), longitude = c(min_ice_long, max_ice_long), time = c(paste(date_for_plot[2]),paste(date_for_plot[2])), fields = 'CRW_SEAICE')
+ice3 <- griddap(info_coral, latitude = c(min_ice_lat, max_ice_lat), longitude = c(min_ice_long, max_ice_long), time = c(paste(date_for_plot[3]),paste(date_for_plot[3])), fields = 'CRW_SEAICE')
+ice4 <- griddap(info_coral, latitude = c(min_ice_lat, max_ice_lat), longitude = c(min_ice_long, max_ice_long), time = c(paste(date_for_plot[4]),paste(date_for_plot[4])), fields = 'CRW_SEAICE')
+
+
+# ice1 <- griddap(info_coral, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c(paste(date_for_plot[1]),paste(date_for_plot[1])), fields = 'CRW_SEAICE')
+# ice2 <- griddap(info_coral, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c(paste(date_for_plot[2]),paste(date_for_plot[2])), fields = 'CRW_SEAICE')
+# ice3 <- griddap(info_coral, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c(paste(date_for_plot[3]),paste(date_for_plot[3])), fields = 'CRW_SEAICE')
+# ice4 <- griddap(info_coral, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c(paste(date_for_plot[4]),paste(date_for_plot[4])), fields = 'CRW_SEAICE')
 
 ice<-data.frame(rbind(ice1$data,ice2$data,ice3$data,ice4$data))
 ice$dates<-as.Date(ice$time)
@@ -245,38 +257,80 @@ old.years.color<-'#D0D0D0'
 
 
 #  Specify legend position coordinates
-mylegx <- 0.3
+mylegx <- 0.2
 mylegy <- 0.865
+
+bsdata <- data %>% filter(ecosystem_area == "Eastern Bering Sea")
 
 # set up latest date label
 ann_text <- data.frame(doy = 100, mean_chla = 6, 
                        lab = paste0("Last date: ", new_max_date),
                        ecosystem_subarea = factor("Southeastern Bering Sea"), 
-                       levels = c("Northern Bering Sea", "Southeastern Bering Sea"))
+                       levels = c("Northern Bering Sea", "Southeastern Bering Sea"),
+                       domain = factor("Outer Domain"),
+                       levels = c("Inner Domain", "Middle Domain", "Outer Domain"))
+
+
 
 # plot
 png(lineplot_fp,width=7,height=5,units="in",res=300)
 ggplot() +
-  geom_line(data=data %>% filter(year<last.year),
+  geom_line(data=bsdata %>% filter(year<last.year),
             aes(doy,mean_chla,group=factor(year),col='old.years.color'),size=0.3) +
-  geom_line(data=data %>% filter(year==last.year),
+  geom_line(data=bsdata %>% filter(year==last.year),
             aes(doy,mean_chla,color='last.year.color'),size=0.75) +
-  geom_line(data=data %>% 
+  geom_line(data=bsdata %>% 
               filter(year%in%mean.years) %>% 
-              group_by(ecosystem_subarea, doy) %>% 
+              group_by(ecosystem_subarea, domain, doy) %>% 
               summarise(meanchla=mean(mean_chla,na.rm=TRUE)),
             aes(doy,meanchla,col='mean.color'),size=0.75) +
-  geom_line(data=data %>% filter(year==current.year),
+  geom_line(data=bsdata %>% filter(year==current.year),
             aes(doy,mean_chla,color='current.year.color'),size=0.95) +
-  geom_text(data=ann_text, aes(doy,mean_chla), label = paste0("Last date: ", new_max_date))+
-  facet_wrap(~ecosystem_subarea ,ncol=2) + 
+  #geom_text(data=ann_text, aes(doy,mean_chla), label = paste0("Last date: ", new_max_date))+
+  facet_grid(rows=vars(ecosystem_subarea), cols=vars(domain)) + 
   scale_color_manual(name="",
                      breaks=c('current.year.color','last.year.color','old.years.color','mean.color'),
                      values=c('current.year.color'=current.year.color,'last.year.color'=last.year.color,'old.years.color'=old.years.color,'mean.color'=mean.color),
-                     labels=c(current.year,last.year,paste0('2013-',last.year-1),mean.lab)) +
+                     labels=c(current.year,last.year,paste0('2012-',last.year-1),mean.lab)) +
   ylab("mean Chla (ug/L)") + 
   xlab("") +
+  ggtitle(paste0("Bering Sea Chlorophyll through date: ", new_max_date))+
   scale_x_continuous(breaks=c(60,91,121,152, 182,213,244,274), labels=c("Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"))+
+  theme_bw()+
+  theme(legend.position=c(mylegx,mylegy),
+        legend.text = element_text(size=8,family="sans"),
+        legend.background = element_blank(),
+        legend.title = element_blank(),
+        strip.text = element_text(size=10,color="white",family="sans",face="bold"),
+        strip.background = element_rect(fill=OceansBlue2),
+        axis.title = element_text(size=10,family="sans"),
+        axis.text = element_text(size=10,family="sans"),
+        legend.key.size = unit(0.35,"cm"),
+        plot.title = element_text(hjust = 0.5, size=10),
+        plot.margin=unit(c(0.65,0,0.65,0),"cm"))
+
+dev.off()
+
+
+## coverage plot
+domain_sum <- viirs_lkp %>%
+  filter(depth<= -30 & depth >= -200 & ecosystem_area == "Eastern Bering Sea") %>%
+  group_by(ecosystem_subarea, domain) %>%
+  summarize(pixel_count = n())
+
+bsdata <- bsdata %>%
+  left_join(domain_sum, by= c("ecosystem_subarea"="ecosystem_subarea", "domain"="domain")) %>%
+  mutate(coverage = n_chla/pixel_count)
+
+png(coverplot_fp,width=7,height=5,units="in",res=300)
+ggplot() +
+  geom_line(data=bsdata %>% filter(year==current.year),
+            aes(x=doy,y=coverage),size=0.95) +
+  #geom_text(data=ann_text, aes(doy,mean_chla), label = paste0("Last date: ", new_max_date))+
+  facet_grid(rows=vars(ecosystem_subarea), cols=vars(domain)) + 
+  ylab("proportion chla available") + 
+  xlab("") +
+  scale_x_continuous(limits=c(40, 274), breaks=c(60,91,121,152, 182,213,244,274), labels=c("Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"))+
   theme_bw()+
   theme(legend.position=c(mylegx,mylegy),
         legend.text = element_text(size=8,family="sans"),
@@ -289,17 +343,3 @@ ggplot() +
         legend.key.size = unit(0.35,"cm"),
         plot.margin=unit(c(0.65,0,0.65,0),"cm")) 
 dev.off()
-
-
-## coverage plot
-nbs_full <- nrow(viirs_lkp %>% 
-                     filter(ecosystem_subarea == "Northern Bering Sea" & depth < -20 & depth > -200))
-sebs_full <- nrow(viirs_lkp %>% 
-                     filter(ecosystem_subarea == "Southeastern Bering Sea" & depth < -20 & depth > -200))
-## SEBS
-df3 <- df3 %>%
-  mutate(coverage = ifelse(ecosystem_subarea == "Southeastern Bering Sea", n_chla/sebs_full, n_chla/nbs_full))
-
-ggplot()+
-  geom_line(data=df3, aes(x=read_date, y=coverage))+
-  facet_wrap(~ecosystem_subarea)

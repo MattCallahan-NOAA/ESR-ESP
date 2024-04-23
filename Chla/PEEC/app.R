@@ -1,15 +1,15 @@
 library(shiny)
-library(ggplot2)
-library(dplyr)
-library(mapdata)
-library(slider)
-library(rerddap)
-library(ncdf4)
-library(tidync)
-library(lubridate)
-library(scales)
-library(cmocean)
-library(shinycssloaders)
+# library(ggplot2)
+# library(dplyr)
+# library(mapdata)
+# library(slider)
+# library(rerddap)
+# library(ncdf4)
+# library(tidync)
+# library(lubridate)
+# library(scales)
+# library(cmocean)
+# library(shinycssloaders)
 
 # load data
 
@@ -31,6 +31,13 @@ ui <- fluidPage(
                                 # Image 2
                                 img(src = "Chla_annual_lines.png", height = 800#, width = 300
                                     )
+                         )
+                       ),
+                       fluidRow(
+                         column(12, align = "center",
+                                # Image 2
+                                img(src = "chla_coverage.png", height = 800#, width = 300
+                                )
                          )
                        )
 

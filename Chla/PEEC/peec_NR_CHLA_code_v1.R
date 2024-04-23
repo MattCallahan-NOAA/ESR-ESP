@@ -47,15 +47,17 @@ dummy_2nd_last_day<-df$dates[1]-days(1)
 
 # matt you need to run this obvuiously once 
 all_ts_chla_2024 <- griddap(info_NR_chla, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c('2024-02-10','last'), fields = 'chlor_a')
-data_ts24<-as.data.frame(all_ts_chla_2024$data)
+data_ts24<-as.data.frame(all_ts_chla_2024$data) %>%
+  filter(chlor_a > 0)
 data_ts24$dates<-as.Date(data_ts24$time)
 
 all_ts_chla_2024_w <- griddap(info_NR_chla, latitude = c(min_lat_w, max_lat_w), longitude = c(min_long_w, max_long_w), time = c('2024-02-10','last'), fields = 'chlor_a')
-data_ts24_w<-as.data.frame(all_ts_chla_2024_w$data)
+data_ts24_w<-as.data.frame(all_ts_chla_2024_w$data) %>%
+  filter(chlor_a> 0)
 data_ts24_w$dates<-as.Date(data_ts24_w$time)
 
 data_ts24 <- data_ts24 %>%
-  bind_rows(data_ts24_w)
+  bind_rows(data_ts24_w) 
 
 saveRDS(data_ts24,file='data/viirs/data_NR_chla_spring2024.RDS')
 
@@ -279,7 +281,7 @@ weekly_avg_chl <- lapply(myyear, FUN=function(x)
 saveRDS(weekly_avg_chl, "data/viirs/viirs_weekly_avg_2012_2023.RDS")
 
 #### add 2024 to the time series ####
-weekly_avg_chl <- readRDS("data/viirs/viirs_weekly_avg_2013_2023.RDS")
+weekly_avg_chl <- readRDS("data/viirs/viirs_weekly_avg_2012_2023.RDS")
 
 data_ts24 <-readRDS("data/viirs/data_NR_chla_spring2024.RDS")
 
