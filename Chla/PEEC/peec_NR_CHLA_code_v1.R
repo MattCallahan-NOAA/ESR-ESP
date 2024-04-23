@@ -16,12 +16,22 @@ rm(list = ls())
 # getting info for the analysis 
 info_NR_chla<-rerddap::info(datasetid = "nesdisVHNchlaWeekly", url = "https://coastwatch.pfeg.noaa.gov/erddap/")
 
-#basin_dims
-min_long<- (-179)
-max_long<- (-155)
-min_lat<- (55)
+#basin_dims_e
+# min_long<- (-179)
+# max_long<- (-155)
+# min_lat<- (55)
+# max_lat<- (66)
+
+min_long<- (-179.99)
+max_long<- (-130)
+min_lat<- (47.5)
 max_lat<- (66)
 
+#basin_dims_w
+min_long_w<- (167)
+max_long_w<- (179.99)
+min_lat_w<- (47.5)
+max_lat_w<- (60)
 
 # 
 recent_day_chl <- griddap(info_NR_chla, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c('last','last'), fields = 'chlor_a')
@@ -36,10 +46,18 @@ dummy_2nd_last_day<-df$dates[1]-days(1)
 # note i set the last date 
 
 # matt you need to run this obvuiously once 
-# all_ts_chla_2024 <- griddap(info_NR_chla, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c('2024-02-10',paste(dummy_2nd_last_day)), fields = 'chlor_a')
-# data_ts24<-as.data.frame(all_ts_chla_2024$data)
-# data_ts24$dates<-as.Date(data_ts24$time)
-# saveRDS(data_ts24,file='data/viirs/data_NR_chla_spring2024.RDS')
+all_ts_chla_2024 <- griddap(info_NR_chla, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c('2024-02-10','last'), fields = 'chlor_a')
+data_ts24<-as.data.frame(all_ts_chla_2024$data)
+data_ts24$dates<-as.Date(data_ts24$time)
+
+all_ts_chla_2024_w <- griddap(info_NR_chla, latitude = c(min_lat_w, max_lat_w), longitude = c(min_long_w, max_long_w), time = c('2024-02-10','last'), fields = 'chlor_a')
+data_ts24_w<-as.data.frame(all_ts_chla_2024_w$data)
+data_ts24_w$dates<-as.Date(data_ts24_w$time)
+
+data_ts24 <- data_ts24 %>%
+  bind_rows(data_ts24_w)
+
+saveRDS(data_ts24,file='data/viirs/data_NR_chla_spring2024.RDS')
 
 data_ts24<-readRDS('data/viirs/data_NR_chla_spring2024.RDS')
 range(data_ts24$dates)
@@ -94,14 +112,17 @@ str(date_for_plot)
 ### getting ice data for select dates 
 ########################################
 info_coral<-rerddap::info(datasetid = "NOAA_DHW", url = "https://coastwatch.pfeg.noaa.gov/erddap/")
-
+min_ice_long<- (-179)
+max_ice_long<- (-155)
+min_ice_lat<- (55)
+max_ice_lat<- (66)
 
 str(date_for_plot[1])
 
-ice1 <- griddap(info_coral, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c(paste(date_for_plot[1]),paste(date_for_plot[1])), fields = 'CRW_SEAICE')
-ice2 <- griddap(info_coral, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c(paste(date_for_plot[2]),paste(date_for_plot[2])), fields = 'CRW_SEAICE')
-ice3 <- griddap(info_coral, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c(paste(date_for_plot[3]),paste(date_for_plot[3])), fields = 'CRW_SEAICE')
-ice4 <- griddap(info_coral, latitude = c(min_lat, max_lat), longitude = c(min_long, max_long), time = c(paste(date_for_plot[4]),paste(date_for_plot[4])), fields = 'CRW_SEAICE')
+ice1 <- griddap(info_coral, latitude = c(min_ice_lat, max_ice_lat), longitude = c(min_ice_long, max_ice_long), time = c(paste(date_for_plot[1]),paste(date_for_plot[1])), fields = 'CRW_SEAICE')
+ice2 <- griddap(info_coral, latitude = c(min_ice_lat, max_ice_lat), longitude = c(min_ice_long, max_ice_long), time = c(paste(date_for_plot[2]),paste(date_for_plot[2])), fields = 'CRW_SEAICE')
+ice3 <- griddap(info_coral, latitude = c(min_ice_lat, max_ice_lat), longitude = c(min_ice_long, max_ice_long), time = c(paste(date_for_plot[3]),paste(date_for_plot[3])), fields = 'CRW_SEAICE')
+ice4 <- griddap(info_coral, latitude = c(min_ice_lat, max_ice_lat), longitude = c(min_ice_long, max_ice_long), time = c(paste(date_for_plot[4]),paste(date_for_plot[4])), fields = 'CRW_SEAICE')
 
 ice<-data.frame(rbind(ice1$data,ice2$data,ice3$data,ice4$data))
 ice$dates<-as.Date(ice$time)
@@ -174,20 +195,31 @@ gc()
 
 #### Matt edits ####
 #### get weekly averages for 2012-2023 ####
-
+# updated to get whole AK EEZ
+min_long<- (167)
+max_long<- (230)
+min_lat<- (47.5)
+max_lat<- (66)
 #download by year
-myyear <- 2013:2023
+myyear <- 2012:2023
+
+options(timeout = 600)
+
 for(i in myyear){
-  file_name <- paste0("data/viirs/viirs_",i,"_e.nc")
-  download.file(url = paste0("https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNSQchlaWeekly.nc?chlor_a%5B(",
+  file_name <- paste0("data/viirs/viirs_sq_",i,".nc")
+  download.file(url = paste0("https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNSQchlaWeekly_Lon0360.nc?chlor_a%5B(",
                              i,"-02-10T00:00:00Z):(", i,"-10-31T12:00:00Z)%5D%5B(0.0):1:(0.0)%5D%5B(",min_lat,"):1:(",max_lat,")%5D%5B(",min_long,"):1:(",max_long,")%5D"),
                 method = "libcurl", mode="wb",destfile = file_name)
 }
+
+
+
 
 # function to bring into data frame
 tidy_chl<-function(file) {
   tidync(file) %>% 
     hyper_tibble() %>% 
+    filter(chlor_a >0) %>%
     mutate(date=as_datetime(time),
            read_date=as.character(date),
            year=year(date),
@@ -202,40 +234,49 @@ tidy_chl<-function(file) {
     dplyr::select(read_date, year, join_lon, join_lat, chlorophyll)
 }
 # join with lookup table (year by year)
+# add domain
 viirs_lkp <-readRDS("data/viirs/viirs_lkp_122623.RDS")
+
+viirs_lkp <- viirs_lkp %>%
+  mutate(domain = ifelse(ecosystem_area != "Eastern Bering Sea", NA,
+                         ifelse(depth >= -50, "Inner Domain",
+                                ifelse(depth >= -100, "Middle Domain", "Outer Domain"))))
+
+saveRDS(viirs_lkp, "data/viirs/viirs_lkp_04222024.RDS")
 
 join_fun <- function(data) {
   data %>%
-    inner_join(viirs_lkp %>% dplyr::select(join_latitude, join_longitude, depth, ecosystem_subarea), by=c("join_lat"="join_latitude", "join_lon"="join_longitude"))
+    inner_join(viirs_lkp %>% dplyr::select(join_latitude, join_longitude, depth, ecosystem_subarea, ecosystem_area, domain), by=c("join_lat"="join_latitude", "join_lon"="join_longitude"))
 }
 
-# filter for shelf (20-200m)
+# filter for shelf (30-200m) except in the AI
 # average for ESR subregions
 aggregate_fun <- function(data) {
   data %>%
-    filter(depth < -20 & depth > -200 & ecosystem_subarea %in% c("Southeastern Bering Sea", "Northern Bering Sea")) %>%
-    group_by(read_date, year, ecosystem_subarea) %>%
-    summarize(mean_chla=mean(chlorophyll, na.rm=TRUE))
+    filter(if_else(ecosystem_area == "Aleutian Islands", depth <= -30, depth <= -30 & depth >= -200)) %>%
+    group_by(read_date, year, ecosystem_area, ecosystem_subarea, domain) %>%
+    summarize(mean_chla=mean(chlorophyll, na.rm=TRUE),
+              n_chla = n())
 }
 
 # combine averages
 # test with 2013
-# t13 <- tidy_chl("data/viirs/viirs_2013_e.nc")
-# max(t13$join_lat)
-# nrow(t13 %>% filter(chlorophyll >0))
-# t13 %>%
-#   group_by(read_date) %>%
-#   summarize(n=n())
-# t13 <- t13 %>% join_fun()
-# t13 <- t13 %>% aggregate_fun()
+t13 <- tidy_chl("data/viirs/viirs_sq_2013.nc")
+max(t13$join_lat)
+nrow(t13 %>% filter(chlorophyll >0))
+t13 %>%
+  group_by(read_date) %>%
+  summarize(n=n())
+t13 <- t13 %>% join_fun()
+t13 <- t13 %>% aggregate_fun()
 
 weekly_avg_chl <- lapply(myyear, FUN=function(x) 
-  tidy_chl(paste0("data/viirs/viirs_",x,"_e.nc")) %>%
+  tidy_chl(paste0("data/viirs/viirs_sq_",x,".nc")) %>%
     join_fun() %>%
     aggregate_fun()) %>%
   bind_rows()
          
-saveRDS(weekly_avg_chl, "data/viirs/viirs_weekly_avg_2013_2023.RDS")
+saveRDS(weekly_avg_chl, "data/viirs/viirs_weekly_avg_2012_2023.RDS")
 
 #### add 2024 to the time series ####
 weekly_avg_chl <- readRDS("data/viirs/viirs_weekly_avg_2013_2023.RDS")

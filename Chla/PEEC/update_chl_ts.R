@@ -16,15 +16,21 @@ library(cmocean)
 nr_ts_fp <- 'data/viirs/data_NR_chla_spring2024.RDS'
 ts_avg_fp <- "data/viirs/viirs_latest_ts.RDS"
 map_fp <- "PEEC/www/chla_maps.png"
-lkp_fp <- "data/viirs/viirs_lkp_122623.RDS"
+lkp_fp <- "data/viirs/viirs_lkp_04222024.RDS"
 lineplot_fp <- "PEEC/www/Chla_annual_lines.png"
 
 
 # set download extent
-min_long<- (-179)#+360
-max_long<- (-155)#+360
-min_lat<- (55)
+min_long<- (-179.99)
+max_long<- (-130)
+min_lat<- (47.5)
 max_lat<- (66)
+
+#basin_dims_w
+min_long_w<- (167)
+max_long_w<- (179.99)
+min_lat_w<- (47.5)
+max_lat_w<- (60)
 
 # load previous 2024 data
 data_2024 <- readRDS(nr_ts_fp)
@@ -46,6 +52,14 @@ recent_day_chl <- griddap(info_NR_chla, latitude = c(min_lat, max_lat), longitud
 
 df<-as.data.frame(recent_day_chl$data)
 df$dates<-as.Date(df$time)
+
+recent_day_chl_w <- griddap(info_NR_chla, latitude = c(min_lat_w, max_lat_w), longitude = c(min_long_w, max_long_w), time = c(new_start,'last'), fields = 'chlor_a')
+
+dfw<-as.data.frame(recent_day_chl_w$data)
+dfw$dates<-as.Date(dfw$time)
+
+df <- df %>%
+  bind_rows(dfw)
 
 #function to update if data has been updated
 update_fun <- function(old_df, new_df) {
@@ -174,16 +188,17 @@ viirs_lkp <-readRDS(lkp_fp)
 
 join_fun <- function(data) {
   data %>%
-    inner_join(viirs_lkp %>% dplyr::select(join_latitude, join_longitude, depth, ecosystem_subarea), by=c("join_lat"="join_latitude", "join_lon"="join_longitude"))
+    inner_join(viirs_lkp %>% dplyr::select(join_latitude, join_longitude, depth, ecosystem_subarea, ecosystem_area, domain), by=c("join_lat"="join_latitude", "join_lon"="join_longitude"))
 }
 
 # filter for shelf (20-200m)
 # average for ESR subregions
 aggregate_fun <- function(data) {
   data %>%
-    filter(depth < -20 & depth > -200 & ecosystem_subarea %in% c("Southeastern Bering Sea", "Northern Bering Sea")) %>%
-    group_by(read_date, year, ecosystem_subarea) %>%
-    summarize(mean_chla=mean(chlorophyll, na.rm=TRUE))
+    filter(if_else(ecosystem_area == "Aleutian Islands", depth <= -30, depth <= -30 & depth >= -200)) %>%
+    group_by(read_date, year, ecosystem_area, ecosystem_subarea, domain) %>%
+    summarize(mean_chla=mean(chlorophyll, na.rm=TRUE),
+              n_chla = n())
 }
 
 df2 <-df %>%
@@ -197,6 +212,7 @@ df2 <-df %>%
   join_fun()%>%
   aggregate_fun()
 
+#join with previous year time series
 update_fun2 <- function(old_df, new_df) {
   new_date <- max(as.Date(new_df$read_date))
   old_date <- max(as.Date(old_df$read_date))
@@ -273,4 +289,17 @@ ggplot() +
         legend.key.size = unit(0.35,"cm"),
         plot.margin=unit(c(0.65,0,0.65,0),"cm")) 
 dev.off()
-  
+
+
+## coverage plot
+nbs_full <- nrow(viirs_lkp %>% 
+                     filter(ecosystem_subarea == "Northern Bering Sea" & depth < -20 & depth > -200))
+sebs_full <- nrow(viirs_lkp %>% 
+                     filter(ecosystem_subarea == "Southeastern Bering Sea" & depth < -20 & depth > -200))
+## SEBS
+df3 <- df3 %>%
+  mutate(coverage = ifelse(ecosystem_subarea == "Southeastern Bering Sea", n_chla/sebs_full, n_chla/nbs_full))
+
+ggplot()+
+  geom_line(data=df3, aes(x=read_date, y=coverage))+
+  facet_wrap(~ecosystem_subarea)
