@@ -60,7 +60,8 @@ dfw<-as.data.frame(recent_day_chl_w$data)
 dfw$dates<-as.Date(dfw$time)
 
 df <- df %>%
-  bind_rows(dfw)
+  bind_rows(dfw) %>%
+  filter(chlor_a>0)
 
 #function to update if data has been updated
 update_fun <- function(old_df, new_df) {
@@ -263,12 +264,12 @@ mylegy <- 0.865
 bsdata <- data %>% filter(ecosystem_area == "Eastern Bering Sea")
 
 # set up latest date label
-ann_text <- data.frame(doy = 100, mean_chla = 6, 
-                       lab = paste0("Last date: ", new_max_date),
-                       ecosystem_subarea = factor("Southeastern Bering Sea"), 
-                       levels = c("Northern Bering Sea", "Southeastern Bering Sea"),
-                       domain = factor("Outer Domain"),
-                       levels = c("Inner Domain", "Middle Domain", "Outer Domain"))
+# ann_text <- data.frame(doy = 100, mean_chla = 6, 
+#                        lab = paste0("Last date: ", new_max_date),
+#                        ecosystem_subarea = factor("Southeastern Bering Sea"), 
+#                        levels = c("Northern Bering Sea", "Southeastern Bering Sea"),
+#                        domain = factor("Outer Domain"),
+#                        levels = c("Inner Domain", "Middle Domain", "Outer Domain"))
 
 
 
@@ -295,7 +296,8 @@ ggplot() +
   ylab("mean Chla (ug/L)") + 
   xlab("") +
   ggtitle(paste0("Bering Sea Chlorophyll through date: ", new_max_date))+
-  scale_x_continuous(breaks=c(60,91,121,152, 182,213,244,274), labels=c("Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"))+
+  scale_x_continuous(limits=c(40, 274), breaks=c(60,121, 182,244), labels=c("Mar",  "May",  "Jul", "Sep"))+
+  #scale_x_continuous(breaks=c(60,91,121,152, 182,213,244,274), labels=c("Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"))+
   theme_bw()+
   theme(legend.position=c(mylegx,mylegy),
         legend.text = element_text(size=8,family="sans"),
@@ -330,7 +332,8 @@ ggplot() +
   facet_grid(rows=vars(ecosystem_subarea), cols=vars(domain)) + 
   ylab("proportion chla available") + 
   xlab("") +
-  scale_x_continuous(limits=c(40, 274), breaks=c(60,91,121,152, 182,213,244,274), labels=c("Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"))+
+  #scale_x_continuous(limits=c(40, 274), breaks=c(60,91,121,152, 182,213,244,274), labels=c("Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"))+
+  scale_x_continuous(limits=c(40, 274), breaks=c(60,121, 182,244), labels=c("Mar",  "May",  "Jul", "Sep"))+
   theme_bw()+
   theme(legend.position=c(mylegx,mylegy),
         legend.text = element_text(size=8,family="sans"),
