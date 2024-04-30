@@ -11,20 +11,21 @@ lkp <- readRDS(lkp_fp)
 
 plotdat <- lkp %>%
   filter(ecosystem_area != "Arctic") %>%
-  filter(if_else(ecosystem_area == "Aleutian Islands", depth <= -30 & depth >= -1000, 
+  filter(if_else(ecosystem_area == "Aleutian Islands", depth <= -30, 
                  if_else(ecosystem_area== "Gulf of Alaska", depth <= -30 & depth >= -500,
-                         depth <= -30 & depth >= -200)))
+                         depth <= -30 & depth >= -200))) %>%
+  st_as_sf(coords=c("longitude", "latitude"), crs=4326)%>%
+  st_transform(crs=3338)
 
 plotdat2 <- lkp %>%
   filter(if_else(ecosystem_area == "Aleutian Islands", depth <= -30, depth <= -30 & depth >= -500)) %>%
   filter(ecosystem_area == "Gulf of Alaska")
 
-
+png(filename="PEEC/www/reference_map.png", width=1500, height=750)
 ggplot()+
-  #geom_point(data=plotdat2, aes(x=lon360, y=latitude), size = 0.1, color="red")+
-  geom_point(data=plotdat, aes(x=lon360, y=latitude), size = 0.1, color="red")+
-  geom_sf(data=ak_dd%>%st_shift_longitude()) +
-  geom_sf(data=esr_dd%>%st_shift_longitude(), fill=NA)+
-  xlim(c(167,198))+ylim(c(48,59))+
+  geom_sf(data=plotdat, color="light gray", size=0.5)+
+  geom_sf(data=ak, fill="dark gray") +
+  geom_sf(data=esr, fill=NA)+
+  coord_sf(crs=3338)+
   theme_bw()
-
+dev.off()

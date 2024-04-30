@@ -20,6 +20,14 @@ lkp_fp <- "data/viirs/viirs_lkp_04222024.RDS"
 lineplot_fp <- "PEEC/www/Chla_annual_lines.png"
 coverplot_fp <- "PEEC/www/chla_coverage.png"
 
+map_goa_fp <- "PEEC/www/chla_maps_goa.png"
+lineplot_goa_fp <- "PEEC/www/Chla_annual_lines_goa.png"
+coverplot_goa_fp <- "PEEC/www/chla_coverage_goa.png"
+
+map_ai_fp <- "PEEC/www/chla_maps_ai.png"
+lineplot_ai_fp <- "PEEC/www/Chla_annual_lines_ai.png"
+coverplot_ai_fp <- "PEEC/www/chla_coverage_ai.png"
+
 
 # set download extent
 min_long<- (-179.99)
@@ -75,7 +83,6 @@ update_fun <- function(old_df, new_df) {
 #update
 data_2024 <- update_fun(old_df=data_2024, new_df = df)
 
-
 #save
 saveRDS(data_2024, nr_ts_fp)
 
@@ -97,7 +104,7 @@ pixel_counts_latest <- pixel_counts %>%
 d1<-pixel_counts_latest[which.max(pixel_counts_latest$pixel_count),]$dates
 
 #define desired spacing (on either side)
-dx <- 3
+dx <- 5
 
 pixel_counts <- pixel_counts %>%
   filter(dates < d1-dx)
@@ -152,6 +159,13 @@ table(plot_chla$dates,is.na(plot_chla$chlor_a))
 ice_s<-ice[ice$CRW_SEAICE>0.0999,] # test - cutting out pixels with less than 10 % ice percentage. Might make sense - as this is normally our cutoff for Chl-a. I.e. Chla removed if ice is higher than 10 %
 ice_s<-ice_s[complete.cases(ice_s$dates),]
 
+map_theme <- theme(plot.title = element_text(size = 20),
+                   strip.text = element_text(size=20,color="black",family="sans"),
+                   axis.title = element_text(size=20,family="sans"),
+                   axis.text = element_text(size=18,family="sans"),
+                   panel.background=element_blank(),
+                   panel.border=element_rect(color="black",fill=NA),
+                   axis.text.x=element_text(color="black"))
 # new plot 
 #windows(20,15)
 maps_plot1 <- ggplot() +
@@ -161,16 +175,10 @@ maps_plot1 <- ggplot() +
   scale_fill_gradientn(colours = (cmocean('ice')(200)),name = "Ice fraction",na.value="transparent") +
   geom_polygon(data = w, aes(x = long, y = lat, group = group), fill = "grey80") +
   scale_x_continuous("Longitude", breaks=breaks_w2, labels=labels_w2, limits=c(140,250))+
-  theme_bw() + ylab("latitude") + xlab("longitude") +
+  theme_bw() + ylab("Latitude")  +
   facet_wrap(.~dates,ncol=2)+
   coord_fixed(1.7, xlim = c(-175+360, -157+360),  ylim = c(55.2, 65.6)) + ggtitle('Chla Bering Sea')+
-  theme(plot.title = element_text(size = 20),
-        strip.text = element_text(size=20,color="black",family="sans"),
-        axis.title = element_text(size=20,family="sans"),
-        axis.text = element_text(size=18,family="sans"),
-        panel.background=element_blank(),
-        panel.border=element_rect(color="black",fill=NA),
-        axis.text.x=element_text(color="black")) 
+  map_theme
 
 
 
@@ -208,7 +216,8 @@ join_fun <- function(data) {
 # average for ESR subregions
 aggregate_fun <- function(data) {
   data %>%
-    filter(if_else(ecosystem_area == "Aleutian Islands", depth <= -30, depth <= -30 & depth >= -200)) %>%
+    filter(if_else(ecosystem_area == "Aleutian Islands", depth <= -30, 
+            if_else(ecosystem_area == "Gulf of Alaska", depth <=-30 & depth >= -500, depth <= -30 & depth >= -200))) %>%
     group_by(read_date, year, ecosystem_area, ecosystem_subarea, domain) %>%
     summarize(mean_chla=mean(chlorophyll, na.rm=TRUE),
               n_chla = n())
@@ -249,8 +258,8 @@ OceansBlue1='#0093D0'
 OceansBlue2='#0055A4' # darker blue used for strip.background
 current.year <- max(data$year)
 last.year <- current.year-1
-mean.years <- 2013:last.year
-mean.lab <- paste0("Mean 2013-",last.year)#load 508 complient colors
+mean.years <- 2012:last.year
+mean.lab <- paste0("Mean 2012-",last.year)#load 508 complient colors
 current.year.color <- "black"
 last.year.color <- '#0093D0'
 mean.color <- '#7F7FFF'
@@ -271,7 +280,20 @@ bsdata <- data %>% filter(ecosystem_area == "Eastern Bering Sea")
 #                        domain = factor("Outer Domain"),
 #                        levels = c("Inner Domain", "Middle Domain", "Outer Domain"))
 
+bsdata <- bsdata %>%
+  mutate(domain= factor(domain, levels = c("Outer Domain", "Middle Domain", "Inner Domain")))
 
+ts_theme <-   theme_bw()+
+  theme(legend.position=c(mylegx,mylegy),
+        legend.text = element_text(size=8,family="sans"),
+        legend.background = element_blank(),
+        legend.title = element_blank(),
+        strip.text = element_text(size=10,color="white",family="sans",face="bold"),
+        strip.background = element_rect(fill=OceansBlue2),
+        axis.title = element_text(size=10,family="sans"),
+        axis.text = element_text(size=10,family="sans"),
+        legend.key.size = unit(0.35,"cm"),
+        plot.margin=unit(c(0.65,0,0.65,0),"cm")) 
 
 # plot
 png(lineplot_fp,width=7,height=5,units="in",res=300)
@@ -298,18 +320,7 @@ ggplot() +
   ggtitle(paste0("Bering Sea Chlorophyll through date: ", new_max_date))+
   scale_x_continuous(limits=c(40, 274), breaks=c(60,121, 182,244), labels=c("Mar",  "May",  "Jul", "Sep"))+
   #scale_x_continuous(breaks=c(60,91,121,152, 182,213,244,274), labels=c("Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"))+
-  theme_bw()+
-  theme(legend.position=c(mylegx,mylegy),
-        legend.text = element_text(size=8,family="sans"),
-        legend.background = element_blank(),
-        legend.title = element_blank(),
-        strip.text = element_text(size=10,color="white",family="sans",face="bold"),
-        strip.background = element_rect(fill=OceansBlue2),
-        axis.title = element_text(size=10,family="sans"),
-        axis.text = element_text(size=10,family="sans"),
-        legend.key.size = unit(0.35,"cm"),
-        plot.title = element_text(hjust = 0.5, size=10),
-        plot.margin=unit(c(0.65,0,0.65,0),"cm"))
+  ts_theme
 
 dev.off()
 
@@ -322,7 +333,9 @@ domain_sum <- viirs_lkp %>%
 
 bsdata <- bsdata %>%
   left_join(domain_sum, by= c("ecosystem_subarea"="ecosystem_subarea", "domain"="domain")) %>%
-  mutate(coverage = n_chla/pixel_count)
+  mutate(coverage = n_chla/pixel_count,
+         domain= factor(domain, levels = c("Outer Domain", "Middle Domain", "Inner Domain")))
+  
 
 png(coverplot_fp,width=7,height=5,units="in",res=300)
 ggplot() +
@@ -334,15 +347,171 @@ ggplot() +
   xlab("") +
   #scale_x_continuous(limits=c(40, 274), breaks=c(60,91,121,152, 182,213,244,274), labels=c("Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"))+
   scale_x_continuous(limits=c(40, 274), breaks=c(60,121, 182,244), labels=c("Mar",  "May",  "Jul", "Sep"))+
-  theme_bw()+
-  theme(legend.position=c(mylegx,mylegy),
-        legend.text = element_text(size=8,family="sans"),
-        legend.background = element_blank(),
-        legend.title = element_blank(),
-        strip.text = element_text(size=10,color="white",family="sans",face="bold"),
-        strip.background = element_rect(fill=OceansBlue2),
-        axis.title = element_text(size=10,family="sans"),
-        axis.text = element_text(size=10,family="sans"),
-        legend.key.size = unit(0.35,"cm"),
-        plot.margin=unit(c(0.65,0,0.65,0),"cm")) 
+  ts_theme
 dev.off()
+
+################################################################################
+#### GOA ####
+################################################################################
+
+wg <- map_data("world2Hires", ylim = c(50, 61), xlim = c(196, 230))
+breaks_wg<-c(190,200,210,220) # working with 0-360 lons - helpful across the dateline. We can change that.
+labels_wg<-breaks_wg-360 #
+
+# new plot 
+maps_plot_goa <- ggplot() +
+  geom_point(data = plot_chla, aes(x = longitude+360, y = latitude, color =(chlor_a)),pch=19) +
+  scale_color_gradientn(colours = (cmocean('thermal')(200)),name = "Chl-a [ug/l]", trans = "pseudo_log",limits=c(0.01,20)) +
+  geom_polygon(data = wg, aes(x = long, y = lat, group = group), fill = "grey80") +
+  scale_x_continuous("Longitude", breaks=breaks_wg, labels=labels_wg, limits=c(140,250))+
+  theme_bw() + ylab("Latitude")  +
+  facet_wrap(.~dates,ncol=2)+
+  coord_fixed(1.7, xlim = c(196, 228),  ylim = c(50, 61)) + ggtitle('Chla Gulf of Alaska')+
+  map_theme
+
+# save
+png(map_goa_fp, height=14.25, width=18, units="in", res=300)
+maps_plot_goa
+dev.off()
+
+#  line plots
+goadata <- data %>% filter(ecosystem_area == "Gulf of Alaska")
+goadata <- goadata %>%
+  mutate(ecoystem_subarea= factor(ecosystem_subarea, levels = c("Western Gulf of Alaska", "Eastern Gulf of Alaska")))
+
+png(lineplot_goa_fp,width=7,height=5,units="in",res=300)
+ggplot() +
+  geom_line(data=goadata %>% filter(year<last.year),
+            aes(doy,mean_chla,group=factor(year),col='old.years.color'),size=0.3) +
+  geom_line(data=goadata %>% filter(year==last.year),
+            aes(doy,mean_chla,color='last.year.color'),size=0.75) +
+  geom_line(data=goadata %>% 
+              filter(year%in%mean.years) %>% 
+              group_by(ecosystem_subarea, domain, doy) %>% 
+              summarise(meanchla=mean(mean_chla,na.rm=TRUE)),
+            aes(doy,meanchla,col='mean.color'),size=0.75) +
+  geom_line(data=goadata %>% filter(year==current.year),
+            aes(doy,mean_chla,color='current.year.color'),size=0.95) +
+  facet_grid(cols=vars(ecosystem_subarea)) + 
+  scale_color_manual(name="",
+                     breaks=c('current.year.color','last.year.color','old.years.color','mean.color'),
+                     values=c('current.year.color'=current.year.color,'last.year.color'=last.year.color,'old.years.color'=old.years.color,'mean.color'=mean.color),
+                     labels=c(current.year,last.year,paste0('2012-',last.year-1),mean.lab)) +
+  ylab("mean Chla (ug/L)") + 
+  xlab("") +
+  ylim(c(0,6))+
+  ggtitle(paste0("Gulf of Alaska Chlorophyll through ", new_max_date))+
+  #scale_x_continuous(limits=c(40, 274), breaks=c(60,121, 182,244), labels=c("Mar",  "May",  "Jul", "Sep"))+
+  scale_x_continuous(breaks=c(60,91,121,152, 182,213,244,274), labels=c("Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"))+
+  theme_bw()+
+  ts_theme
+dev.off()
+
+#coverage
+goa_esr_sum <- viirs_lkp %>%
+  filter(depth<= -30 & depth >= -500 & ecosystem_area == "Gulf of Alaska") %>% # change to 500
+  group_by(ecosystem_subarea) %>%
+  summarize(pixel_count = n())
+
+goadata <- goadata %>%
+  left_join(goa_esr_sum, by= c("ecosystem_subarea"="ecosystem_subarea")) %>%
+  mutate(coverage = n_chla/pixel_count,
+         ecoystem_subarea= factor(ecosystem_subarea, levels = c("Western Gulf of Alaska", "Eastern Gulf of Alaska")))
+
+
+png(coverplot_goa_fp,width=7,height=5,units="in",res=300)
+ggplot() +
+  geom_line(data=goadata %>% filter(year==current.year),
+            aes(x=doy,y=coverage),size=0.95) +
+  #geom_text(data=ann_text, aes(doy,mean_chla), label = paste0("Last date: ", new_max_date))+
+  facet_grid(cols=vars(ecosystem_subarea)) + 
+  ylab("proportion chla available") + 
+  xlab("") +
+  #scale_x_continuous(limits=c(40, 274), breaks=c(60,91,121,152, 182,213,244,274), labels=c("Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"))+
+  scale_x_continuous(limits=c(40, 274), breaks=c(60,121, 182,244), labels=c("Mar",  "May",  "Jul", "Sep"))+
+  ts_theme
+dev.off()
+
+################################################################################
+#### AI ####
+################################################################################
+wa <- map_data("world2Hires", ylim = c(47.9, 56.2), xlim = c(167, 196))
+breaks_wa<-c(170,180,190) # working with 0-360 lons - helpful across the dateline. We can change that.
+labels_wa<-breaks_wa-360 #
+
+plot_chla <- plot_chla %>%
+  mutate(lon360=ifelse(longitude>0, longitude, longitude+360))
+
+# new plot 
+maps_plot_ai <- ggplot() +
+  geom_point(data = plot_chla, aes(x = lon360, y = latitude, color =(chlor_a)),pch=19) +
+  scale_color_gradientn(colours = (cmocean('thermal')(200)),name = "Chl-a [ug/l]", trans = "pseudo_log",limits=c(0.01,20)) +
+  geom_polygon(data = wa, aes(x = long, y = lat, group = group), fill = "grey80") +
+  scale_x_continuous("Longitude", breaks=breaks_wa, labels=labels_wa, limits=c(140,250))+
+  theme_bw() + ylab("Latitude")  +
+  facet_wrap(.~dates,ncol=2)+
+  coord_fixed(1.7, xlim = c(167, 196),  ylim = c(47.9, 56.2)) + ggtitle('Chla Aleutian Islands')+
+  map_theme
+
+# save
+png(map_ai_fp, height=14.25, width=18, units="in", res=300)
+maps_plot_ai
+dev.off()
+
+#  line plots
+aidata <- data %>% filter(ecosystem_area == "Aleutian Islands")
+aidata <- aidata %>%
+  mutate(ecosystem_subarea= factor(ecosystem_subarea, levels = c("Western Aleutians","Central Aleutians", "Eastern Aleutians")))
+
+png(lineplot_ai_fp,width=7,height=5,units="in",res=300)
+ggplot() +
+  geom_line(data=aidata %>% filter(year<last.year),
+            aes(doy,mean_chla,group=factor(year),col='old.years.color'),size=0.3) +
+  geom_line(data=aidata %>% filter(year==last.year),
+            aes(doy,mean_chla,color='last.year.color'),size=0.75) +
+  geom_line(data=aidata %>% 
+              filter(year%in%mean.years) %>% 
+              group_by(ecosystem_subarea, doy) %>% 
+              summarise(meanchla=mean(mean_chla,na.rm=TRUE)),
+            aes(doy,meanchla,col='mean.color'),size=0.75) +
+  geom_line(data=aidata %>% filter(year==current.year),
+            aes(doy,mean_chla,color='current.year.color'),size=0.95) +
+  facet_grid(cols=vars(ecosystem_subarea)) + 
+  scale_color_manual(name="",
+                     breaks=c('current.year.color','last.year.color','old.years.color','mean.color'),
+                     values=c('current.year.color'=current.year.color,'last.year.color'=last.year.color,'old.years.color'=old.years.color,'mean.color'=mean.color),
+                     labels=c(current.year,last.year,paste0('2012-',last.year-1),mean.lab)) +
+  ylab("mean Chla (ug/L)") + 
+  xlab("") +
+  ggtitle(paste0("Aleutian Chlorophyll through ", new_max_date))+
+  #scale_x_continuous(breaks=c(60,91,121,152, 182,213,244,274), labels=c("Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"))+
+  scale_x_continuous(limits=c(40, 274), breaks=c(60,121, 182,244), labels=c("Mar",  "May",  "Jul", "Sep"))+
+  theme_bw()+
+  ts_theme
+dev.off()
+
+#coverage
+ai_esr_sum <- viirs_lkp %>%
+  filter(depth<= -30  & ecosystem_area == "Aleutian Islands") %>% 
+  group_by(ecosystem_subarea) %>%
+  summarize(pixel_count = n())
+
+aidata <- aidata %>%
+  left_join(ai_esr_sum, by= c("ecosystem_subarea"="ecosystem_subarea")) %>%
+  mutate(coverage = n_chla/pixel_count,
+         ecosystem_subarea= factor(ecosystem_subarea, levels = c("Western Aleutians","Central Aleutians", "Eastern Aleutians"))) %>%
+  data.frame()
+
+
+png(coverplot_ai_fp, width=7,height=5,units="in",res=300)
+ggplot() +
+  geom_line(data=aidata %>% filter(year==current.year),
+            aes(x=doy,y=coverage)) +
+  facet_grid(cols=vars(ecosystem_subarea)) + 
+  ylab("proportion chla available") + 
+  xlab("") +
+  scale_x_continuous(limits=c(40, 274), breaks=c(60,121, 182,244), labels=c("Mar",  "May",  "Jul", "Sep"))+
+  ts_theme
+dev.off()
+
+

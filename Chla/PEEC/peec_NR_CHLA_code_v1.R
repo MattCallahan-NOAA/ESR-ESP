@@ -255,7 +255,8 @@ join_fun <- function(data) {
 # average for ESR subregions
 aggregate_fun <- function(data) {
   data %>%
-    filter(if_else(ecosystem_area == "Aleutian Islands", depth <= -30, depth <= -30 & depth >= -200)) %>%
+    filter(if_else(ecosystem_area == "Aleutian Islands", depth <= -30, 
+                   if_else(ecosystem_area == "Gulf of Alaska", depth <=-30 & depth >= -500, depth <= -30 & depth >= -200))) %>%
     group_by(read_date, year, ecosystem_area, ecosystem_subarea, domain) %>%
     summarize(mean_chla=mean(chlorophyll, na.rm=TRUE),
               n_chla = n())
