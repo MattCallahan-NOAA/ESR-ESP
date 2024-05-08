@@ -177,7 +177,7 @@ maps_plot1 <- ggplot() +
   scale_x_continuous("Longitude", breaks=breaks_w2, labels=labels_w2, limits=c(140,250))+
   theme_bw() + ylab("Latitude")  +
   facet_wrap(.~dates,ncol=2)+
-  coord_fixed(1.7, xlim = c(-175+360, -157+360),  ylim = c(55.2, 65.6)) + ggtitle('Chla Bering Sea')+
+  coord_fixed(1.7, xlim = c(-175+360, -157+360),  ylim = c(55.2, 65.6)) + ggtitle('Chlorophyll-a Bering Sea')+
   map_theme
 
 
@@ -315,9 +315,9 @@ ggplot() +
                      breaks=c('current.year.color','last.year.color','old.years.color','mean.color'),
                      values=c('current.year.color'=current.year.color,'last.year.color'=last.year.color,'old.years.color'=old.years.color,'mean.color'=mean.color),
                      labels=c(current.year,last.year,paste0('2012-',last.year-1),mean.lab)) +
-  ylab("mean Chla (ug/L)") + 
+  ylab("mean Chlorophyll-a (ug/L)") + 
   xlab("") +
-  ggtitle(paste0("Bering Sea Chlorophyll through date: ", new_max_date))+
+  ggtitle(paste0("Bering Sea Chlorophyll-a through: ", new_max_date))+
   scale_x_continuous(limits=c(40, 274), breaks=c(60,121, 182,244), labels=c("Mar",  "May",  "Jul", "Sep"))+
   #scale_x_continuous(breaks=c(60,91,121,152, 182,213,244,274), labels=c("Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"))+
   ts_theme
@@ -343,7 +343,7 @@ ggplot() +
             aes(x=doy,y=coverage),size=0.95) +
   #geom_text(data=ann_text, aes(doy,mean_chla), label = paste0("Last date: ", new_max_date))+
   facet_grid(rows=vars(ecosystem_subarea), cols=vars(domain)) + 
-  ylab("proportion chla available") + 
+  ylab("proportion Chlorophyll-a available") + 
   xlab("") +
   #scale_x_continuous(limits=c(40, 274), breaks=c(60,91,121,152, 182,213,244,274), labels=c("Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"))+
   scale_x_continuous(limits=c(40, 274), breaks=c(60,121, 182,244), labels=c("Mar",  "May",  "Jul", "Sep"))+
@@ -366,7 +366,7 @@ maps_plot_goa <- ggplot() +
   scale_x_continuous("Longitude", breaks=breaks_wg, labels=labels_wg, limits=c(140,250))+
   theme_bw() + ylab("Latitude")  +
   facet_wrap(.~dates,ncol=2)+
-  coord_fixed(1.7, xlim = c(196, 228),  ylim = c(50, 61)) + ggtitle('Chla Gulf of Alaska')+
+  coord_fixed(1.7, xlim = c(196, 228),  ylim = c(50, 61)) + ggtitle('Chlorophyll-a Gulf of Alaska')+
   map_theme
 
 # save
@@ -397,10 +397,10 @@ ggplot() +
                      breaks=c('current.year.color','last.year.color','old.years.color','mean.color'),
                      values=c('current.year.color'=current.year.color,'last.year.color'=last.year.color,'old.years.color'=old.years.color,'mean.color'=mean.color),
                      labels=c(current.year,last.year,paste0('2012-',last.year-1),mean.lab)) +
-  ylab("mean Chla (ug/L)") + 
+  ylab("mean Chlorophyll-a (ug/L)") + 
   xlab("") +
   ylim(c(0,6))+
-  ggtitle(paste0("Gulf of Alaska Chlorophyll through ", new_max_date))+
+  ggtitle(paste0("Gulf of Alaska Chlorophyll-a through ", new_max_date))+
   #scale_x_continuous(limits=c(40, 274), breaks=c(60,121, 182,244), labels=c("Mar",  "May",  "Jul", "Sep"))+
   scale_x_continuous(breaks=c(60,91,121,152, 182,213,244,274), labels=c("Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"))+
   theme_bw()+
@@ -425,7 +425,7 @@ ggplot() +
             aes(x=doy,y=coverage),size=0.95) +
   #geom_text(data=ann_text, aes(doy,mean_chla), label = paste0("Last date: ", new_max_date))+
   facet_grid(cols=vars(ecosystem_subarea)) + 
-  ylab("proportion chla available") + 
+  ylab("proportion Chlorophyll-a available") + 
   xlab("") +
   #scale_x_continuous(limits=c(40, 274), breaks=c(60,91,121,152, 182,213,244,274), labels=c("Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"))+
   scale_x_continuous(limits=c(40, 274), breaks=c(60,121, 182,244), labels=c("Mar",  "May",  "Jul", "Sep"))+
@@ -450,7 +450,7 @@ maps_plot_ai <- ggplot() +
   scale_x_continuous("Longitude", breaks=breaks_wa, labels=labels_wa, limits=c(140,250))+
   theme_bw() + ylab("Latitude")  +
   facet_wrap(.~dates,ncol=2)+
-  coord_fixed(1.7, xlim = c(167, 196),  ylim = c(47.9, 56.2)) + ggtitle('Chla Aleutian Islands')+
+  coord_fixed(1.7, xlim = c(167, 196),  ylim = c(47.9, 56.2)) + ggtitle('Chlorophyll-a Aleutian Islands')+
   map_theme
 
 # save
@@ -483,7 +483,7 @@ ggplot() +
                      labels=c(current.year,last.year,paste0('2012-',last.year-1),mean.lab)) +
   ylab("mean Chla (ug/L)") + 
   xlab("") +
-  ggtitle(paste0("Aleutian Chlorophyll through ", new_max_date))+
+  ggtitle(paste0("Aleutian Chlorophyll-a through ", new_max_date))+
   #scale_x_continuous(breaks=c(60,91,121,152, 182,213,244,274), labels=c("Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"))+
   scale_x_continuous(limits=c(40, 274), breaks=c(60,121, 182,244), labels=c("Mar",  "May",  "Jul", "Sep"))+
   theme_bw()+
@@ -508,7 +508,7 @@ ggplot() +
   geom_line(data=aidata %>% filter(year==current.year),
             aes(x=doy,y=coverage)) +
   facet_grid(cols=vars(ecosystem_subarea)) + 
-  ylab("proportion chla available") + 
+  ylab("proportion Chlorophyll-a available") + 
   xlab("") +
   scale_x_continuous(limits=c(40, 274), breaks=c(60,121, 182,244), labels=c("Mar",  "May",  "Jul", "Sep"))+
   ts_theme
