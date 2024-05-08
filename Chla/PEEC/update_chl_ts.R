@@ -126,6 +126,25 @@ date_for_plot <- c(d1,d2,d3,d4)
 plot_chla <- data_2024 %>%
   filter(dates %in% date_for_plot)
 
+## filter plot chla by region
+viirs_lkp <-readRDS(lkp_fp)
+
+join_fun <- function(data) {
+  data %>%
+    inner_join(viirs_lkp %>% dplyr::select(join_latitude, join_longitude, depth, ecosystem_subarea, ecosystem_area, domain), by=c("join_lat"="join_latitude", "join_lon"="join_longitude"))
+}
+
+plot_chla<-plot_chla %>%
+  mutate(join_lon=as.numeric(ifelse(longitude<0, #ifelse statement keeps +- lons the same length
+                                    substr(longitude,1,8),
+                                    substr(longitude,1,7))), 
+         join_lat=as.numeric(substr(latitude,1,6)))%>%
+  join_fun()
+
+ plot_chla_bs<-plot_chla%>% filter(ecosystem_area=="Eastern Bering Sea")
+ plot_chla_goa<-plot_chla%>% filter(ecosystem_area=="Gulf of Alaska")
+ plot_chla_ai<-plot_chla%>% filter(ecosystem_area=="Aleutian Islands")
+
 # download ice
 min_ice_long<- (-179)
 max_ice_long<- (-155)
@@ -169,7 +188,7 @@ map_theme <- theme(plot.title = element_text(size = 20),
 # new plot 
 #windows(20,15)
 maps_plot1 <- ggplot() +
-  geom_point(data = plot_chla, aes(x = longitude+360, y = latitude, color =(chlor_a)),pch=19) +
+  geom_point(data = plot_chla_bs, aes(x = longitude+360, y = latitude, color =(chlor_a)),pch=19) +
   scale_color_gradientn(colours = (cmocean('thermal')(200)),name = "Chl-a [ug/l]", trans = "pseudo_log",limits=c(0.01,20)) +
   geom_raster(data = ice_s, aes(x = longitude+360, y = latitude, fill =(CRW_SEAICE)),interpolate = TRUE,color='white') +
   scale_fill_gradientn(colours = (cmocean('ice')(200)),name = "Ice fraction",na.value="transparent") +
@@ -204,13 +223,6 @@ dev.off()
 # load previous years data
 ts_avg <- readRDS(ts_avg_fp)
   
-# join with look up table
-viirs_lkp <-readRDS(lkp_fp)
-
-join_fun <- function(data) {
-  data %>%
-    inner_join(viirs_lkp %>% dplyr::select(join_latitude, join_longitude, depth, ecosystem_subarea, ecosystem_area, domain), by=c("join_lat"="join_latitude", "join_lon"="join_longitude"))
-}
 
 # filter for shelf (20-200m)
 # average for ESR subregions
@@ -360,7 +372,7 @@ labels_wg<-breaks_wg-360 #
 
 # new plot 
 maps_plot_goa <- ggplot() +
-  geom_point(data = plot_chla, aes(x = longitude+360, y = latitude, color =(chlor_a)),pch=19) +
+  geom_point(data = plot_chla_goa, aes(x = longitude+360, y = latitude, color =(chlor_a)),pch=19) +
   scale_color_gradientn(colours = (cmocean('thermal')(200)),name = "Chl-a [ug/l]", trans = "pseudo_log",limits=c(0.01,20)) +
   geom_polygon(data = wg, aes(x = long, y = lat, group = group), fill = "grey80") +
   scale_x_continuous("Longitude", breaks=breaks_wg, labels=labels_wg, limits=c(140,250))+
@@ -444,7 +456,7 @@ plot_chla <- plot_chla %>%
 
 # new plot 
 maps_plot_ai <- ggplot() +
-  geom_point(data = plot_chla, aes(x = lon360, y = latitude, color =(chlor_a)),pch=19) +
+  geom_point(data = plot_chla_ai, aes(x = lon360, y = latitude, color =(chlor_a)),pch=19) +
   scale_color_gradientn(colours = (cmocean('thermal')(200)),name = "Chl-a [ug/l]", trans = "pseudo_log",limits=c(0.01,20)) +
   geom_polygon(data = wa, aes(x = long, y = lat, group = group), fill = "grey80") +
   scale_x_continuous("Longitude", breaks=breaks_wa, labels=labels_wa, limits=c(140,250))+
