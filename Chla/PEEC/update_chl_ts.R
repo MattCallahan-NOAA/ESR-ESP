@@ -9,6 +9,8 @@ library(dplyr)
 library(lubridate)
 library(scales)
 library(cmocean)
+library(sf)
+library(akmarineareas2)
 
 # Define filepaths. 
 # The shiny server uses a different file structure.
@@ -143,7 +145,8 @@ plot_chla<-plot_chla %>%
 
  plot_chla_bs<-plot_chla%>% filter(ecosystem_area=="Eastern Bering Sea")
  plot_chla_goa<-plot_chla%>% filter(ecosystem_area=="Gulf of Alaska")
- plot_chla_ai<-plot_chla%>% filter(ecosystem_area=="Aleutian Islands")
+ plot_chla_ai<-plot_chla%>% filter(ecosystem_area=="Aleutian Islands")%>%
+   mutate(lon360=ifelse(longitude>0, longitude, longitude+360))
 
 # download ice
 min_ice_long<- (-179)
@@ -374,11 +377,16 @@ labels_wg<-breaks_wg-360 #
 maps_plot_goa <- ggplot() +
   geom_point(data = plot_chla_goa, aes(x = longitude+360, y = latitude, color =(chlor_a)),pch=19) +
   scale_color_gradientn(colours = (cmocean('thermal')(200)),name = "Chl-a [ug/l]", trans = "pseudo_log",limits=c(0.01,20)) +
-  geom_polygon(data = wg, aes(x = long, y = lat, group = group), fill = "grey80") +
-  scale_x_continuous("Longitude", breaks=breaks_wg, labels=labels_wg, limits=c(140,250))+
-  theme_bw() + ylab("Latitude")  +
+  #geom_polygon(data = wg, aes(x = long, y = lat, group = group), fill = "grey80") +
+  geom_sf(data=ak %>% st_transform(crs=4326)%>%st_shift_longitude(),fill = "grey80")+
+  #scale_x_continuous("Longitude", breaks=breaks_wg, labels=labels_wg, limits=c(140,250))+
+  scale_x_continuous("Longitude", limits=c(196,227.5), expand=c(0,0))+
+  scale_y_continuous("Latitude",  limits=c(50,61), expand=c(0,0))+
+  theme_bw() + 
+  #ylab("Latitude")  + xlab("Latitude")+
   facet_wrap(.~dates,ncol=2)+
-  coord_fixed(1.7, xlim = c(196, 228),  ylim = c(50, 61)) + ggtitle('Chlorophyll-a Gulf of Alaska')+
+  #coord_sf(xlim = c(196, 228),  ylim = c(50, 61)) + 
+  ggtitle('Chlorophyll-a Gulf of Alaska')+
   map_theme
 
 # save
@@ -386,7 +394,7 @@ png(map_goa_fp, height=14.25, width=18, units="in", res=300)
 maps_plot_goa
 dev.off()
 
-#  line plots
+x#  line plots
 goadata <- data %>% filter(ecosystem_area == "Gulf of Alaska")
 goadata <- goadata %>%
   mutate(ecoystem_subarea= factor(ecosystem_subarea, levels = c("Western Gulf of Alaska", "Eastern Gulf of Alaska")))
@@ -450,9 +458,6 @@ dev.off()
 wa <- map_data("world2Hires", ylim = c(47.9, 56.2), xlim = c(167, 196))
 breaks_wa<-c(170,180,190) # working with 0-360 lons - helpful across the dateline. We can change that.
 labels_wa<-breaks_wa-360 #
-
-plot_chla <- plot_chla %>%
-  mutate(lon360=ifelse(longitude>0, longitude, longitude+360))
 
 # new plot 
 maps_plot_ai <- ggplot() +
