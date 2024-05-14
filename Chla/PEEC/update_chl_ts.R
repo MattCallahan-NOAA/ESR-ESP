@@ -26,7 +26,7 @@ map_goa_fp <- "PEEC/www/chla_maps_goa.png"
 lineplot_goa_fp <- "PEEC/www/Chla_annual_lines_goa.png"
 coverplot_goa_fp <- "PEEC/www/chla_coverage_goa.png"
 
-map_ai_fp <- "PEEC/www/chla_maps_ai.png"
+map_ai_fp <- "PEEC/www/Chla_maps_ai.png"
 lineplot_ai_fp <- "PEEC/www/Chla_annual_lines_ai.png"
 coverplot_ai_fp <- "PEEC/www/chla_coverage_ai.png"
 
@@ -279,7 +279,7 @@ current.year.color <- "black"
 last.year.color <- '#0093D0'
 mean.color <- '#7F7FFF'
 old.years.color<-'#D0D0D0'
-
+scaleFUN <- function(x) sprintf("%.2f", x)
 
 #  Specify legend position coordinates
 mylegx <- 0.2
@@ -335,6 +335,7 @@ ggplot() +
   ggtitle(paste0("Bering Sea Chlorophyll-a through: ", new_max_date))+
   scale_x_continuous(limits=c(40, 274), breaks=c(60,121, 182,244), labels=c("Mar",  "May",  "Jul", "Sep"))+
   #scale_x_continuous(breaks=c(60,91,121,152, 182,213,244,274), labels=c("Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"))+
+  scale_y_continuous(labels=scaleFUN)+
   ts_theme
 
 dev.off()
@@ -394,7 +395,7 @@ png(map_goa_fp, height=14.25, width=18, units="in", res=300)
 maps_plot_goa
 dev.off()
 
-x#  line plots
+#  line plots
 goadata <- data %>% filter(ecosystem_area == "Gulf of Alaska")
 goadata <- goadata %>%
   mutate(ecoystem_subarea= factor(ecosystem_subarea, levels = c("Western Gulf of Alaska", "Eastern Gulf of Alaska")))
@@ -412,7 +413,8 @@ ggplot() +
             aes(doy,meanchla,col='mean.color'),size=0.75) +
   geom_line(data=goadata %>% filter(year==current.year),
             aes(doy,mean_chla,color='current.year.color'),size=0.95) +
-  facet_grid(cols=vars(ecosystem_subarea)) + 
+  #facet_grid(cols=vars(ecosystem_subarea)) +
+  facet_grid(cols=vars(factor(ecosystem_subarea, levels = c("Western Gulf of Alaska", "Eastern Gulf of Alaska")))) +
   scale_color_manual(name="",
                      breaks=c('current.year.color','last.year.color','old.years.color','mean.color'),
                      values=c('current.year.color'=current.year.color,'last.year.color'=last.year.color,'old.years.color'=old.years.color,'mean.color'=mean.color),
@@ -424,6 +426,7 @@ ggplot() +
   #scale_x_continuous(limits=c(40, 274), breaks=c(60,121, 182,244), labels=c("Mar",  "May",  "Jul", "Sep"))+
   scale_x_continuous(breaks=c(60,91,121,152, 182,213,244,274), labels=c("Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"))+
   theme_bw()+
+  scale_y_continuous(labels=scaleFUN)+
   ts_theme
 dev.off()
 
@@ -444,7 +447,7 @@ ggplot() +
   geom_line(data=goadata %>% filter(year==current.year),
             aes(x=doy,y=coverage),size=0.95) +
   #geom_text(data=ann_text, aes(doy,mean_chla), label = paste0("Last date: ", new_max_date))+
-  facet_grid(cols=vars(ecosystem_subarea)) + 
+  facet_grid(cols=vars(factor(ecosystem_subarea, levels = c("Western Gulf of Alaska", "Eastern Gulf of Alaska")))) + 
   ylab("proportion Chlorophyll-a available") + 
   xlab("") +
   #scale_x_continuous(limits=c(40, 274), breaks=c(60,91,121,152, 182,213,244,274), labels=c("Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"))+
@@ -493,7 +496,7 @@ ggplot() +
             aes(doy,meanchla,col='mean.color'),size=0.75) +
   geom_line(data=aidata %>% filter(year==current.year),
             aes(doy,mean_chla,color='current.year.color'),size=0.95) +
-  facet_grid(cols=vars(ecosystem_subarea)) + 
+  facet_grid(cols=vars(factor(ecosystem_subarea, levels = c("Western Aleutians","Central Aleutians", "Eastern Aleutians")))) + 
   scale_color_manual(name="",
                      breaks=c('current.year.color','last.year.color','old.years.color','mean.color'),
                      values=c('current.year.color'=current.year.color,'last.year.color'=last.year.color,'old.years.color'=old.years.color,'mean.color'=mean.color),
@@ -503,6 +506,7 @@ ggplot() +
   ggtitle(paste0("Aleutian Chlorophyll-a through ", new_max_date))+
   #scale_x_continuous(breaks=c(60,91,121,152, 182,213,244,274), labels=c("Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"))+
   scale_x_continuous(limits=c(40, 274), breaks=c(60,121, 182,244), labels=c("Mar",  "May",  "Jul", "Sep"))+
+  scale_y_continuous(labels=scaleFUN)+
   theme_bw()+
   ts_theme
 dev.off()
@@ -524,10 +528,11 @@ png(coverplot_ai_fp, width=7,height=5,units="in",res=300)
 ggplot() +
   geom_line(data=aidata %>% filter(year==current.year),
             aes(x=doy,y=coverage)) +
-  facet_grid(cols=vars(ecosystem_subarea)) + 
+  facet_grid(cols=vars(factor(ecosystem_subarea, levels = c("Western Aleutians","Central Aleutians", "Eastern Aleutians")))) + 
   ylab("proportion Chlorophyll-a available") + 
   xlab("") +
   scale_x_continuous(limits=c(40, 274), breaks=c(60,121, 182,244), labels=c("Mar",  "May",  "Jul", "Sep"))+
+  scale_y_continuous(limits=c(0,1), breaks=c(0.00, 0.25, 0.50, 0.75, 1.00))+
   ts_theme
 dev.off()
 

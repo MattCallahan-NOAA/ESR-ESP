@@ -55,6 +55,8 @@ ui <- fluidPage(
 
                        ),
  tabPanel("Gulf of Alaska",
+          downloadButton("goa_map_dl", "Download maps"),
+          downloadButton("goa_series_dl","Download time series"),
           fluidRow(
             column(12, align = "center",
                    # Image 1
@@ -78,6 +80,8 @@ ui <- fluidPage(
           )
  ),
  tabPanel("Aleutian Islands",
+          downloadButton("ai_map_dl", "Download maps"),
+          downloadButton("ai_series_dl","Download time series"),
           fluidRow(
             column(12, align = "center",
                    # Image 1
@@ -124,6 +128,50 @@ server <- function(input, output) {
     contentType = "image/png",
     content= function(file){
       file.copy("www/Chla_annual_lines.png", file)
+    }
+    
+  )
+  
+  output$goa_map_dl<-downloadHandler(
+    filename = function() {
+      paste("GOA-chla-maps-", Sys.Date(), ".png", sep="")
+    },
+    contentType = "image/png",
+    content= function(file){
+      file.copy("www/chla_maps_goa.png", file)
+    }
+    
+  )
+  
+  output$goa_series_dl<-downloadHandler(
+    filename = function() {
+      paste("GOA-chla-time-series-", Sys.Date(), ".png", sep="")
+    },
+    contentType = "image/png",
+    content= function(file){
+      file.copy("www/Chla_annual_lines_goa.png", file)
+    }
+    
+  )
+  
+  output$ai_map_dl<-downloadHandler(
+    filename = function() {
+      paste("AI-chla-maps-", Sys.Date(), ".png", sep="")
+    },
+    contentType = "image/png",
+    content= function(file){
+      file.copy("www/chla_maps_ai.png", file)
+    }
+    
+  )
+  
+  output$ai_series_dl<-downloadHandler(
+    filename = function() {
+      paste("AI-chla-time-series-", Sys.Date(), ".png", sep="")
+    },
+    contentType = "image/png",
+    content= function(file){
+      file.copy("www/Chla_annual_lines_ai.png", file)
     }
     
   )
