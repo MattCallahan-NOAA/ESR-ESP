@@ -325,7 +325,7 @@ ggplot() +
   geom_line(data=bsdata %>% filter(year==current.year),
             aes(doy,mean_chla,color='current.year.color'),size=0.95) +
   #geom_text(data=ann_text, aes(doy,mean_chla), label = paste0("Last date: ", new_max_date))+
-  facet_grid(rows=vars(ecosystem_subarea), cols=vars(domain)) + 
+  facet_grid(rows=vars(ecosystem_subarea), cols=vars(factor(domain, levels = c("Outer Domain", "Middle Domain", "Inner Domain")))) +
   scale_color_manual(name="",
                      breaks=c('current.year.color','last.year.color','old.years.color','mean.color'),
                      values=c('current.year.color'=current.year.color,'last.year.color'=last.year.color,'old.years.color'=old.years.color,'mean.color'=mean.color),
@@ -423,8 +423,8 @@ ggplot() +
   xlab("") +
   ylim(c(0,6))+
   ggtitle(paste0("Gulf of Alaska Chlorophyll-a through ", new_max_date))+
-  #scale_x_continuous(limits=c(40, 274), breaks=c(60,121, 182,244), labels=c("Mar",  "May",  "Jul", "Sep"))+
-  scale_x_continuous(breaks=c(60,91,121,152, 182,213,244,274), labels=c("Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"))+
+  scale_x_continuous(limits=c(40, 274), breaks=c(60,121, 182,244), labels=c("Mar",  "May",  "Jul", "Sep"))+
+  #scale_x_continuous(breaks=c(60,91,121,152, 182,213,244,274), labels=c("Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"))+
   theme_bw()+
   scale_y_continuous(labels=scaleFUN)+
   ts_theme
