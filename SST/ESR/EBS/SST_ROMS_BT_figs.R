@@ -44,6 +44,8 @@ grid_lkp <- grid %>%
            lat_rho>=lkp$minlat & 
            lat_rho<=lkp$maxlat)
 
+
+
 # Right now it's just a rectangular grid.
 grid_lkp %>% 
   ggplot(aes(lon_rho,lat_rho)) + 
