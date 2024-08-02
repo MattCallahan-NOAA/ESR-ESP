@@ -156,3 +156,20 @@ glob_2024 <- glob_2024%>%
 
   dbWriteTable(con_j, "GLOBCOLOUR", glob_2024, append=TRUE)
   
+  
+    # The env_data.globcolour table had glob_id as a varchar. 
+    # This will not work for joining to the lookup table. 
+    # I used the following SQL code to convert glob_id to numeric
+    # 
+    # alter table globcolour 
+    # add (id_number number);
+    # update globcolour
+    # set id_number = to_number(glob_id);
+    # select count(*) from globcolour where id_number is null;
+    # alter table globcolour 
+    # drop column glob_id;
+    # alter table globcolour 
+    # rename column id_number to glob_id;
+    # commit;
+    # 
+    # This will require glob_id to be numeric in R for next year's update
