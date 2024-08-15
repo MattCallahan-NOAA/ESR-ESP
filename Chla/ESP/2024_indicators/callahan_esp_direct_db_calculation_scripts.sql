@@ -32,6 +32,14 @@ group by extract(year from to_date(start_date,'YYYY-MM-DD')+4)
 order by extract(year from to_date(start_date,'YYYY-MM-DD')+4) asc;
 */
 
+-- New tannder indicator
+select extract(year from to_date(start_date,'YYYY-MM-DD')+4) year, 'tanner_crab_chla' as indicator_name, round(avg(chla),2) data_value
+from env_data.globcolour a
+left join env_data.globcolour_spatial_lookup b on a.glob_id=b.glob_id
+where extract(month from to_date(start_date,'YYYY-MM-DD')+4) in (4, 5, 6)
+and bsierp_id in ('3','4','5')
+group by extract(year from to_date(start_date,'YYYY-MM-DD')+4)
+order by extract(year from to_date(start_date,'YYYY-MM-DD')+4) asc;
 
 -- We will submit the following using a text file to test the parser
 
