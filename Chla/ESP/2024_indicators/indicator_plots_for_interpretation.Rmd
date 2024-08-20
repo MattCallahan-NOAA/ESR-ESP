@@ -1,0 +1,105 @@
+---
+title: "AKFIN sourced ESP interpretation plots"
+author: "Matt Callahan"
+date: "2024-08-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+library(odbc)
+library(magrittr)
+library(dplyr)
+library(getPass)
+library(ggplot2)
+library(flextable)
+
+#connect
+con <- dbConnect(odbc::odbc(), "akfin", UID=getPass(msg="USER NAME"), PWD=getPass())
+
+#query database function
+
+get_data <- function(con=con, query=query) {
+  dbFetch(dbSendQuery(con, query)) %>%
+    rename_with(tolower)
+}
+
+plot_data <- function(data) {
+  ind_mean<- mean(data$data_value)
+  print(paste0("mean value = ", ind_mean))
+  data %>%
+    ggplot()+
+    geom_line(aes(x=year, y=data_value))+
+    geom_hline(yintercept=ind_mean, color = "red")
+}
+
+view_data <- function(data) {
+  data %>%
+    flextable()
+}
+
+
+```
+
+## AMJ_Chlorophylla_Biomass_SEBS_Satellite
+
+```{r}
+query <- paste0("select extract(year from to_date(start_date,'YYYY-MM-DD')+4) year, 'AMJ_Chlorophylla_Biomass_SEBS_Satellite' as indicator_name, round(avg(chla),2) data_value
+from env_data.globcolour a
+left join env_data.globcolour_spatial_lookup b on a.glob_id=b.glob_id
+where extract(month from to_date(start_date,'YYYY-MM-DD')+4) in (4, 5, 6)
+and bsierp_region_name in ('St. Matthew','Pribilofs')
+group by extract(year from to_date(start_date,'YYYY-MM-DD')+4)
+order by extract(year from to_date(start_date,'YYYY-MM-DD')+4) asc")
+
+data<-get_data(con=con, query=query)
+
+plot_data(data=data)
+
+view_data(data=data)
+
+```
+
+## Spring_Chlorophylla_Biomass_SEBS_Inner_Shelf_Satellite
+
+```{r}
+
+query <- paste0("select extract(year from to_date(start_date,'YYYY-MM-DD')+4) year, 'Spring_Chlorophylla_Biomass_SEBS_Inner_Shelf_Satellite' as indicator_name, round(avg(chla),2) data_value
+from env_data.globcolour a
+left join env_data.globcolour_spatial_lookup b on a.glob_id=b.glob_id
+where extract(month from to_date(start_date,'YYYY-MM-DD')+4) in (4, 5, 6)
+and bs_king='BBRKC'
+group by extract(year from to_date(start_date,'YYYY-MM-DD')+4)
+order by extract(year from to_date(start_date,'YYYY-MM-DD')+4) asc")
+
+data<-get_data(con=con, query=query)
+
+plot_data(data=data)
+
+view_data(data=data)
+
+```
+
+## New tanner indicator
+
+```{r}
+query <- paste0("select extract(year from to_date(start_date,'YYYY-MM-DD')+4) year, 'tanner_crab_chla' as indicator_name, round(avg(chla),2) data_value
+from env_data.globcolour a
+left join env_data.globcolour_spatial_lookup b on a.glob_id=b.glob_id
+where extract(month from to_date(start_date,'YYYY-MM-DD')+4) in (4, 5, 6)
+and bsierp_id in ('3','4','5')
+group by extract(year from to_date(start_date,'YYYY-MM-DD')+4)
+order by extract(year from to_date(start_date,'YYYY-MM-DD')+4) asc")
+
+data<-get_data(con=con, query=query)
+
+plot_data(data=data)
+
+view_data(data=data)
+
+```
