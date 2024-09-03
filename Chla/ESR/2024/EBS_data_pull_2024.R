@@ -13,7 +13,7 @@ con <- dbConnect(odbc::odbc(), "akfin",  UID="JNIELSEN", PWD=getPass())
 
 #load data with depth, season, and region filters
 glob<-dbFetch(dbSendQuery(con, "select round(avg(chla),2) meanchla, to_date(start_date,'YYYY-MM-DD')+4 mid_date, jens_grid, bsierp_id,bsierp_super_region 
-from env_data.globcolour_2023 a
+from env_data.globcolour a
 left join env_data.globcolour_spatial_lookup b on a.glob_id=b.glob_id
 where extract(month from to_date(start_date,'YYYY-MM-DD')+4) in (1,2,3,4, 5, 6,7,8,9,10,11,12)
 and ecosystem_area = ('Eastern Bering Sea')
@@ -25,7 +25,7 @@ group by to_date(start_date,'YYYY-MM-DD')+4, jens_grid,bsierp_id,bsierp_super_re
   rename_with(tolower)
 
 head(glob)
-saveRDS(glob,file='inter_jens_datafiles/globcolour_23augSQL.RDS')
+saveRDS(glob,file='inter_jens_datafiles/globcolour_24augSQL.RDS')
 
 
 table(glob$bsierp_id)
@@ -87,7 +87,7 @@ group by read_date, jens_grid "))%>%
   rename_with(tolower)
 
 head(ice)
-saveRDS(ice,file='inter_jens_datafiles/icedata_for_retreat_timing_23augSQL.RDS')
+saveRDS(ice,file='inter_jens_datafiles/icedata_for_retreat_timing_24augSQL.RDS')
 
 
 

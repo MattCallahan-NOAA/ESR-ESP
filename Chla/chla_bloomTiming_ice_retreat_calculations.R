@@ -8,7 +8,7 @@ library(cmocean)
 library(forecast)
 
 
-p <- readRDS("inter_jens_datafiles/globcolour_23augSQL.RDS")
+p <- readRDS("inter_jens_datafiles/globcolour_24augSQL.RDS")
 
 
 #p<-readRDS('inter_jens_datafiles/dummy2023_grid_chla_forESR_prep.RDS')
@@ -86,53 +86,32 @@ timing_peak_all_log8<-peakall_log[  !is.na(year) &  !is.na(jens_grid), lapply(.S
 timing_peak_all_log8<-data.frame(timing_peak_all_log8)
 
 head(timing_peak_all_log8)
+tail(timing_peak_all_log8)
 
 
-
-saveRDS(timing_peak_all_log8,file='inter_jens_datafiles/bloomTimingGlob_1998_2023.RDS')
+saveRDS(timing_peak_all_log8,file='inter_jens_datafiles/bloomTimingGlob_1998_2024.RDS')
 
 # plot 2023 here- just checking that it worked
 
 
-ggplot()+
-  coord_equal(xlim=c(181,203),ylim=c(54.8,66),ratio = 1.8)+
-  geom_point(data = timing_peak_all_log8, aes(x = lon+360, y = lat,fill=(peak_timing_all_log)),pch=21,size=7,color='black')+
-  scale_fill_gradientn(colours = (cmocean('haline')(200)),name = "") +
-  #geom_polygon(data = data_mapH, aes(x=long, y = lat, group = group),colour="black", fill="darkgrey")+
-  ylab("Latitude")+
-  scale_x_continuous("Longitude", breaks=breaks_w2, labels=labels_w2, limits=c(140,250))+
-  ggtitle('Bloom timing (1998-2022)')+
-  theme(plot.title = element_text(size = 18),
-        strip.text = element_text(size=18,color="white",family="sans",face="bold"),
-        strip.background = element_rect(fill='dodgerblue'), # Add the NOAA color blue to the facet strips.
-        axis.title = element_text(size=18,family="sans"),
-        axis.text = element_text(size=18,family="sans",color='black'),
-        panel.background=element_blank(),
-        panel.border=element_rect(color="black",fill=NA),
-        axis.text.x=element_text(color="black"),
-        legend.title = element_text(size=14))#+
 
 
 
 
 
-
-
-
-
-bloom_df <- prevBL_df %>% full_join(timing_peak_all_log8, by=c('gridid_MS','year')) 
-head(bloom_df)
-tail(bloom_df)
+# 
+# bloom_df <- prevBL_df %>% full_join(timing_peak_all_log8, by=c('gridid_MS','year')) 
+# head(bloom_df)
+# tail(bloom_df)
 
 #################################
 ### Calculation with ice data ###
 #################################
 gc()
-is<-readRDS("inter_jens_datafiles/icedata_for_retreat_timing_23augSQL.RDS")
+is<-readRDS("inter_jens_datafiles/icedata_for_retreat_timing_24augSQL.RDS")
 head(is) # is means ice in Danish
 is$a_ice<-is$ice_fraction           
 table(is.na(is$ice_fraction))
-
 
 is$month=month(is$read_date )
 is$year=year(is$read_date )
@@ -141,8 +120,6 @@ is$doy=yday(is$read_date )
 table(is$year)
 
 # 
-
-
 
 smoother_value_forecast<-8 # note here this is the daily data 
 
@@ -167,7 +144,7 @@ ice_ret_15 <- is %>% group_by(jens_grid,year)  %>% arrange(doy,decreasing = TRUE
   summarize(ice_retr_roll15 = max(doy))
 
 unique_jens_grids<-unique(is$jens_grid)
-dummy_fill<-expand.grid(unique_jens_grids,c(1998:2023))
+dummy_fill<-expand.grid(unique_jens_grids,c(1998:2024))
 colnames(dummy_fill)<-c('jens_grid','year')
 
 
@@ -190,7 +167,7 @@ table(is.na(comb_df$mean_ice_frac))
 table(is.na(comb_df$ice_retr_roll15))
 head(comb_df)
 
-saveRDS(comb_df,file='inter_jens_datafiles/iceRetreatTiming_1998_2023.RDS')
+saveRDS(comb_df,file='inter_jens_datafiles/iceRetreatTiming_1998_2024.RDS')
 
 
 #####
@@ -202,7 +179,7 @@ df_chl23_bloom_sub<-subset(timing_peak_all_log8,select = c( gridid_MS, year,lon,
 head(df_chl23_bloom_sub)
 str(df_chl23_bloom_sub)
 
-prevBL_df<- readRDS("inter_jens_datafiles/GLOBCOLOUR_1_smooth_8_day_composite_TIMING_jan2023.RDS")
+prevBL_df<- readRDS("inter_jens_datafiles/GLOBCOLOUR_1_smooth_8_day_composite_TIMING_jan2028.RDS")
 head(prevBL_df)
 prevBL_df_sub<-subset(prevBL_df,select = c( gridid_MS, year,lon,lat, depth,peak_timing_all_log))
 str(prevBL_df_sub)
