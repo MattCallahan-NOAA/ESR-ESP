@@ -226,6 +226,8 @@ mooring$bsierp_super_region<-factor((as.character(mooring$bsierp_super_region)),
 mooring$prim_hybrid[25]<-142 # day of year - based on Prawler data
 mooring$prim_hybrid[52]<-142 # day of year - based on Prawler data
 
+
+
 ###
 ### average long-term data 
 ###

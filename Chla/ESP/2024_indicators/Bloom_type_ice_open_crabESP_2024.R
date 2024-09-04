@@ -94,6 +94,15 @@ Edf$bloom_ice_diff<-Edf$peak_timing_all_log -Edf$ice_retr_roll15
 Edf$bloomtype<-'ice_full'
 Edf$bloomtype[Edf$bloom_ice_diff>20]<-'ice_free'
 
+head(Edf)
+
+# save for the ESR borealiztion index - Litzow/Ryznar sep2024
+# bloom_timing_BORIE<- Edf %>% group_by(year, north_south) %>% summarize(mean_peak = mean(peak_timing_all_log,na.rm=TRUE),
+#                                                                                  sd = sd(peak_timing_all_log,na.rm=TRUE))
+# 
+# write.csv(bloom_timing_BORIE, file='inter_jens_datafiles/bloom_timing_NS_OPIE_2024.csv')
+
+check <- read.csv('Chla/ESP/2023_indicators/bloom_type_ESP_contributio_with2023.csv')
 
 
 ice_free_sum<- Edf %>% group_by(year, north_south,bloomtype) %>% summarize(count = n())
