@@ -1,4 +1,5 @@
-#2023 figures for GOA ESR
+#2024 figures for GOA ESR
+# originally written in 2021
 library(tidyverse)
 library(heatwaveR)
 library(lubridate)
@@ -36,7 +37,7 @@ mytheme <- theme(strip.text = element_text(size=10,color="white",family="sans",f
 #   detect_event(ts2clm(data %>% filter(Ecosystem_sub==region), climatologyPeriod = c("1986-01-01", "2015-12-31")))
 # }
 
-newdat <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Eastern%20Gulf%20of%20Alaska,Western%20Gulf%20of%20Alaska&start_date=19850401&end_date=20251231'), type = "application/json") %>% 
+newdat <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Eastern%20Gulf%20of%20Alaska,Western%20Gulf%20of%20Alaska&start_date=19850101&end_date=20251231'), type = "application/json") %>% 
   bind_rows %>% 
   mutate(date=as_date(READ_DATE)) %>% 
   data.frame %>% 
@@ -74,7 +75,7 @@ last.year <- current.year-1
 mean.years <- 1985:2014
 mean.lab <- "Mean 1985-2014"
 
-png("GOA/2023/Callahan_Fig1.png",width=7,height=5,units="in",res=300)
+png(paste0("GOA/",current.year,"/Callahan_Fig1.png"),width=7,height=5,units="in",res=300)
 ggplot() +
   geom_line(data=newdat %>% filter(year2<last.year),
             aes(newdate,meansst,group=factor(year2),col='mygrey'),size=0.3) +
@@ -176,7 +177,7 @@ mytheme <- theme(strip.text = element_text(size=10,color="white",family="sans",f
                  #legend.key.size = unit(1,"line")
                  )
 
-png("GOA/2023/Callahan_Figure_2_Flames_GOA_2023.png",width=7,height=5,units="in",res=300)
+png(paste0("GOA/",current.year,"/Callahan_Figure_2_Flames_GOA_2023.png"),width=7,height=5,units="in",res=300)
 ggplot(data = clim_cat %>% filter(t>=as.Date("2020-09-01")), aes(x = t, y = temp)) +
   geom_line(aes(y = temp, col = "Temperature"), size = 0.85) +
   geom_flame(aes(y2 = thresh, fill = Moderate)) +
@@ -270,7 +271,7 @@ annualevents <- lapply(1:nrow(mhw_wgoa),function(x)data.frame(date=seq.Date(as.D
   arrange(year2) %>% 
   filter(!is.na(region))
 
-png("GOA/2023/Callahan_Figure3_MHW_days_season_2023.png",width=6,height=3.375,units="in",res=300)
+png(paste0("GOA/",current.year,"/Callahan_Figure3_MHW_days_season_2023.png"),width=6,height=3.375,units="in",res=300)
 annualevents %>% 
   gather(Period,Duration,-c(year2,region)) %>% 
   data.frame %>% 
@@ -307,7 +308,7 @@ b.ecosystem_sub
 from (select
 crw_id, read_date, heatwave_category
 from afsc.erddap_crw_sst
-where extract(year from read_date)=2023) a
+where extract(year from read_date)=2024) a
 inner join (select id, ecosystem_sub 
 from afsc.erddap_crw_sst_spatial_lookup
 where ecosystem ='Gulf of Alaska'
@@ -339,8 +340,8 @@ mhw_goa2<-mhw_goa%>%left_join(goa_totals, by="ecosystem_sub")%>%
 #reassign ice to no heatwave
 mhw_goa2$heatwave_category<-recode(mhw_goa2$heatwave_category, "I"="0")
 #save
-saveRDS(mhw_goa2, "GOA/Data/prop_mhw_goa2023.RDS")
-mhw_goa2<-readRDS("GOA/Data/prop_mhw_goa2023.RDS")
+saveRDS(mhw_goa2, "GOA/Data/prop_mhw_goa2024.RDS")
+mhw_goa2<-readRDS("GOA/Data/prop_mhw_goa2024.RDS")
 
 
 #calculate 5 day averages
@@ -380,7 +381,7 @@ count_by_mhw_d<-function(x){
     ) 
 }
 
-png("GOA/2023/goa_mhw_by_status_5day.png", width=9,height=4.5,units="in",res=300)
+png(paste0("GOA/",current.year,"/goa_mhw_by_status_5day.png"), width=9,height=4.5,units="in",res=300)
 count_by_mhw_d(mhw_goa2_5)
 dev.off()
 

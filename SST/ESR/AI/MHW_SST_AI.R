@@ -122,7 +122,7 @@ myplotfun <- function(region1,region2,region3){
   ggdraw(mylines_base)
 }
 
-png("AI/2023/Figure_1_SST_AI_ESR_crwsst.png",width=6,height=3.375,units="in",res=300)
+png(paste0("AI/",current.year,"/Figure_1_SST_AI_ESR_crwsst.png"),width=6,height=3.375,units="in",res=300)
 myplotfun("Western Aleutians","Central Aleutians","Eastern Aleutians")
 dev.off()
 
@@ -163,7 +163,7 @@ dfmean <- df %>%
   summarise(meantrend=mean(trend[between(year,1985,2014)],na.rm=TRUE),
             sdtrend=sd(trend[between(year,1985,2014)],na.rm=TRUE))
 
-png("AI/2023/Figure_2_SST_AI_ESR_TimeSeries_updated.png",width=6,height=4,units="in",res=300)
+png(paste0("AI/",current.year,"/Figure_2_SST_AI_ESR_TimeSeries_updated.png"),width=6,height=4,units="in",res=300)
 df %>% 
   ggplot(aes(x = date, y = trend)) + 
   geom_line() + 
@@ -241,8 +241,8 @@ mytheme2 <- theme(strip.text = element_text(size=10,color="white",family="sans",
                  panel.border=element_rect(colour="black",fill=NA,size=0.5))
         
 
-png("AI/2023/Figure_3_Flames.png",width=7,height=5,units="in",res=300)
-ggplot(data = clim_cat %>% filter(t>=as.Date("2020-12-01")), aes(x = t, y = temp)) +
+png(paste0("AI/",current.year,"/Figure_3_Flames.png"),width=7,height=5,units="in",res=300)
+ggplot(data = clim_cat %>% filter(t>=as.Date(paste0(current.year-3,"-12-01"))), aes(x = t, y = temp)) +
   geom_flame(aes(y2 = thresh, fill = "Moderate")) +
   geom_flame(aes(y2 = thresh_2x, fill = "Strong")) +
   geom_flame(aes(y2 = thresh_3x, fill = "Severe")) +
@@ -308,10 +308,10 @@ mhw_cai <- ((detect_event(ts2clm((data) %>%
               mutate(region="Central Aleutians")) %>% 
   data.frame
 
-annualevents <- lapply(1:nrow(mhw_wai),function(x)data.frame(date=seq.Date(as.Date(mhw_nbs[x,"date_start"]),as.Date(mhw_nbs[x,"date_end"]),"days"))) %>% 
+annualevents <- lapply(1:nrow(mhw_wai),function(x)data.frame(date=seq.Date(as.Date(mhw_wai[x,"date_start"]),as.Date(mhw_wai[x,"date_end"]),"days"))) %>% 
   bind_rows() %>% 
   mutate(region="Western Aleutians") %>% 
-  bind_rows(lapply(1:nrow(mhw_eai),function(x)data.frame(date=seq.Date(as.Date(mhw_ebs[x,"date_start"]),as.Date(mhw_ebs[x,"date_end"]),"days"))) %>% 
+  bind_rows(lapply(1:nrow(mhw_eai),function(x)data.frame(date=seq.Date(as.Date(mhw_eai[x,"date_start"]),as.Date(mhw_eai[x,"date_end"]),"days"))) %>% 
               bind_rows() %>% 
               mutate(region="Eastern Aleutians")) %>% 
   bind_rows(lapply(1:nrow(mhw_cai),function(x)data.frame(date=seq.Date(as.Date(mhw_cai[x,"date_start"]),as.Date(mhw_cai[x,"date_end"]),"days"))) %>% 
@@ -332,7 +332,7 @@ annualevents <- lapply(1:nrow(mhw_wai),function(x)data.frame(date=seq.Date(as.Da
   arrange(year2) %>% 
   filter(!is.na(region))
 
-png("AI/2023/Figure_4_MHW_days_season_updated.png",width=6,height=3.375,units="in",res=300)
+png(paste0("AI/",current.year,"/Figure_4_MHW_days_season_updated.png"),width=6,height=3.375,units="in",res=300)
 annualevents %>% 
   gather(Period,Duration,-c(year2,region)) %>% 
   data.frame %>% 
@@ -437,7 +437,7 @@ count_by_mhw_d<-function(x){
     ) 
 }
 
-png("AI/2023/ai_mhw_by_status_5day.png", width=9,height=4.5,units="in",res=300)
+png(paste0("AI/",current.year,"/ai_mhw_by_status_5day.png"), width=9,height=4.5,units="in",res=300)
 count_by_mhw_d(mhw_ai2_5)
 dev.off()
 

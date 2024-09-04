@@ -150,7 +150,7 @@ mylegy <- 0.865
 ####-------------------------------------------------------------####
 
 #  Define the Bering Sea dataset
-BSupdateddata <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Southeastern%20Bering%20Sea,Northern%20Bering%20Sea&start_date=19850101&end_date=20230831'), type = "application/json") %>% 
+BSupdateddata <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Southeastern%20Bering%20Sea,Northern%20Bering%20Sea&start_date=19850101&end_date=20240831'), type = "application/json") %>% 
   bind_rows %>% 
   mutate(date=as_date(READ_DATE)) %>% 
   data.frame %>% 
@@ -301,19 +301,19 @@ hist((ROMS%>%filter(depth>=-200))$depth)
 #Now run the same thing with new regions
 
 #Just use Jordan's RDS for previous years
-SSTdata2<-readRDS("EBS/Data/ESR_sst_depthbins.RDS")
+#SSTdata2<-readRDS("EBS/Data/ESR_sst_depthbins.RDS")
 #need to query raw SST for new aggregation
 #connect to db
 con<- dbConnect(odbc::odbc(),dsn="AKFIN",uid=getPass (),pwd=getPass())
 #download sst
-SSTupdate<- dbFetch(
-  dbSendQuery(con,"select read_date, crw_id, temp, ecosystem_sub, depth from AFSC.erddap_crw_sst sst
-inner join afsc.erddap_crw_sst_spatial_lookup lkp
-on sst.CRW_ID=lkp.id
-where ecosystem='Eastern Bering Sea'
-and read_date > to_date('01 sep 2021 12:00:00', 'dd mon yyyy hh:mi:ss')
-and read_date < to_date('01 sep 2023 12:00:00', 'dd mon yyyy hh:mi:ss')")) 
-saveRDS(SSTupdate, "EBS/Data/2023update_raw.RDS")
+# SSTupdate<- dbFetch(
+#   dbSendQuery(con,"select read_date, crw_id, temp, ecosystem_sub, depth from AFSC.erddap_crw_sst sst
+# inner join afsc.erddap_crw_sst_spatial_lookup lkp
+# on sst.CRW_ID=lkp.id
+# where ecosystem='Eastern Bering Sea'
+# and read_date > to_date('01 sep 2021 12:00:00', 'dd mon yyyy hh:mi:ss')
+# and read_date < to_date('01 sep 2023 12:00:00', 'dd mon yyyy hh:mi:ss')")) 
+# saveRDS(SSTupdate, "EBS/Data/2023update_raw.RDS")
 #oops forgot a few rows
 # 
 bonus<- dbFetch(
@@ -325,12 +325,12 @@ and read_date > to_date('02 sep 2021 12:00:00', 'dd mon yyyy hh:mi:ss')
 and read_date < to_date('09 sep 2021 12:00:00', 'dd mon yyyy hh:mi:ss')"))
 SSTupdate<-SSTupdate%>%bind_rows(bonus)
 #download a test day to match with last year's
-test<- dbFetch(
-  dbSendQuery(con,"select read_date, crw_id, temp, ecosystem_sub, depth from AFSC.erddap_crw_sst sst
-inner join afsc.erddap_crw_sst_spatial_lookup lkp
-on sst.CRW_ID=lkp.id
-where ecosystem='Eastern Bering Sea'
-and read_date = to_date('02 sep 2021 12:00:00', 'dd mon yyyy hh:mi:ss')"))
+# test<- dbFetch(
+#   dbSendQuery(con,"select read_date, crw_id, temp, ecosystem_sub, depth from AFSC.erddap_crw_sst sst
+# inner join afsc.erddap_crw_sst_spatial_lookup lkp
+# on sst.CRW_ID=lkp.id
+# where ecosystem='Eastern Bering Sea'
+# and read_date = to_date('02 sep 2021 12:00:00', 'dd mon yyyy hh:mi:ss')"))
 
 #this math looks right.
 test%>%
@@ -353,14 +353,17 @@ SSTupdate2<-SSTupdate%>%
   dplyr::select(READ_DATE, SST, Ecosystem_sub, eco2)
 
 #remove sep 2 2021
-SSTupdate2<-SSTupdate2%>%
-  filter(READ_DATE != as.POSIXct("2021-09-02 12:00:00", tz= "UTC"))
+# SSTupdate2<-SSTupdate2%>%
+#   filter(READ_DATE != as.POSIXct("2021-09-02 12:00:00", tz= "UTC"))
 
 
 #process data
 SSTdata2<-SSTdata2%>%bind_rows(SSTupdate2) 
 #save, use this next year
 saveRDS(SSTdata2, "EBS/Data/ESR_sst_depthbins_2023.RDS")
+
+SSTdata2<-readRDS("EBS/Data/ESR_sst_depthbins_2023.RDS")
+
 
 SSTdata2<-SSTdata2%>%
   rename_all(tolower) %>% 
