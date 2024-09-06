@@ -1,7 +1,6 @@
 library(tidyverse)
 library(heatwaveR)
 library(lubridate)
-library(viridis)
 library(cowplot)
 library(viridis)
 #devtools::install_github("brisneve/ggplottimeseries")
@@ -51,7 +50,7 @@ data <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/ec
 
 
 #----------------------------------------------------------------------------------------------------------------------------
-#  Figure 1. Temperature time series with years overlain (top of Twitter plot)
+#  Figure 1. Temperature time series with years overlain NOW JUST FROM SHINY
 #----------------------------------------------------------------------------------------------------------------------------
 
 #  Assign colors to different time series.
@@ -77,54 +76,13 @@ mylogoy <- 0.285
 #  Set year criteria to automatically identify the current and previous years
 current.year <- max(data$year)
 last.year <- current.year-1
-mean.years <- 1986:2015
-mean.lab <- "Mean 1986-2015"
+climatology_start_year <- 1985
+climatology_start_date <- "1985-01-01"
+climatology_end_year <- 2014
+climatology_end_date <- "2014-12-31"
+mean.years <- climatology_start_year:climatology_end_year 
+mean.lab <- paste0("Mean ",climatology_start_year,"-",climatology_end_year)
 
-#  Create plotting function that will allow selection of 2 ESR regions
-myplotfun <- function(region1,region2,region3){
-  mylines_base <- ggplot() +
-    geom_line(data=data %>% filter(year2<last.year & esr_region%in%(c(region1,region2,region3))),
-              aes(newdate,meansst,group=factor(year2),col='mygrey'),size=0.3) +
-    geom_line(data=data %>% filter(year2==last.year & esr_region%in%(c(region1,region2,region3))),
-              aes(newdate,meansst,color='last.year.color'),size=0.65) +
-    geom_line(data=data %>% 
-                filter(year%in%mean.years & esr_region%in%(c(region1,region2,region3))) %>% 
-                group_by(esr_region,newdate) %>% 
-                summarise(meantemp=mean(meansst,na.rm=TRUE)),
-              aes(newdate,meantemp,col='mean.color'),size=0.5) +
-    geom_line(data=data %>% filter(year2==current.year & esr_region%in%(c(region1,region2,region3))),
-              aes(newdate,meansst,color='current.year.color'),size=0.65) +
-    facet_wrap(~esr_region,ncol=3) + 
-    scale_color_manual(name="",
-                       breaks=c('current.year.color','last.year.color','mygrey','mean.color'),
-                       values=c('current.year.color'=current.year.color,'last.year.color'=last.year.color,'mygrey'=SeagrassGreen4,'mean.color'=mean.color),
-                       labels=c(current.year,last.year,paste0('1985-',last.year-1),mean.lab)) +
-    ylab("Mean Sea Surface Temperature (C)") + 
-    xlab("") +
-    scale_x_date(date_breaks="1 month",
-                 date_labels = "%b",
-                 expand = c(0.025,0.025)) + 
-    theme(legend.position=c(mylegx,mylegy),
-          legend.text = element_text(size=8,family="sans"),
-          legend.background = element_blank(),
-          legend.title = element_blank(),
-          strip.text = element_text(size=10,color="white",family="sans",face="bold"),
-          strip.background = element_rect(fill=OceansBlue2),
-          axis.title = element_text(size=10,family="sans"),
-          axis.text = element_text(size=10,family="sans"),
-          panel.border=element_rect(colour="black",size=0.75),
-          panel.grid = element_line(),
-          panel.background = element_blank(),
-          axis.text.x=element_text(color=c("black",NA,NA,"black",NA,NA,"black",NA,NA,"black",NA,NA,NA)),
-          legend.key.size = unit(0.35,"cm"),
-          plot.margin=unit(c(0.25,0,0.25,0),"cm")) 
-  
-  ggdraw(mylines_base)
-}
-
-png(paste0("AI/",current.year,"/Figure_1_SST_AI_ESR_crwsst.png"),width=6,height=3.375,units="in",res=300)
-myplotfun("Western Aleutians","Central Aleutians","Eastern Aleutians")
-dev.off()
 
 
 #----------------------------------------------------------------------------------------------------------------------------
@@ -160,8 +118,8 @@ df <- dfwai %>%
 
 dfmean <- df %>% 
   group_by(ecosystem_sub) %>% 
-  summarise(meantrend=mean(trend[between(year,1985,2014)],na.rm=TRUE),
-            sdtrend=sd(trend[between(year,1985,2014)],na.rm=TRUE))
+  summarise(meantrend=mean(trend[between(year,climatology_start_year,climatology_end_year)],na.rm=TRUE), # uses 1985-2014 since visualization uses calendar year
+            sdtrend=sd(trend[between(year,climatology_start_year,climatology_end_year)],na.rm=TRUE))
 
 png(paste0("AI/",current.year,"/Figure_2_SST_AI_ESR_TimeSeries_updated.png"),width=6,height=4,units="in",res=300)
 df %>% 
@@ -186,100 +144,101 @@ dev.off()
 
 #---------------------------------------------------------------------------------------------
 # Figure 3. Marine heatwave (MHW) status during the last three years. 
+# Now taken from shiny app
 # Filled (yellow) areas depict MHW events.
 # Black lines represent the 30-year baseline (smoothed line) and observed daily sea surface temperatures (jagged line). 
 # Faint grey dotted lines illustrate the MHW severity thresholds in increasing order (moderate, strong).
 #---------------------------------------------------------------------------------------------
 
 #  Create figure that shows MHW status
-mhw <- (detect_event(ts2clm((data) %>%
-                              filter(esr_region=="Western Aleutians") %>% 
-                              rename(t=read_date,temp=meansst) %>% 
-                              arrange(t), climatologyPeriod = c("1985-12-01", "2015-11-30"))))$clim %>% 
-  mutate(region="Western Aleutians") %>% 
-  bind_rows((detect_event(ts2clm((data) %>%
-                                   filter(esr_region=="Eastern Aleutians") %>% 
-                                   rename(t=read_date,temp=meansst) %>% 
-                                   arrange(t), climatologyPeriod = c("1985-12-01", "2015-11-30"))))$clim %>% 
-              mutate(region="Eastern Aleutians")) %>% 
-  bind_rows((detect_event(ts2clm((data) %>%
-                                   filter(esr_region=="Central Aleutians") %>% 
-                                   rename(t=read_date,temp=meansst) %>% 
-                                   arrange(t), climatologyPeriod = c("1985-12-01", "2015-11-30"))))$clim %>% 
-              mutate(region="Central Aleutians"))
-
-clim_cat <- mhw %>%
-  mutate(region=fct_relevel(region,"Western Aleutians")) %>% 
-  group_by(region) %>% 
-  dplyr::mutate(diff = thresh - seas,
-                thresh_2x = thresh + diff,
-                thresh_3x = thresh_2x + diff,
-                thresh_4x = thresh_3x + diff,
-                year=year(t))
-
-# Set line colours
-lineColCat <- c(
-  "Temperature" = "black",
-  "Climatology" = "gray20",
-  "Moderate" = "gray60",
-  "Strong" = "gray60"#,
-  #"Severe" = "gray60"#,
-  #"Extreme" = "gray60"
-)
-
-fillColCat <- c(
-  "Moderate" = "#ffc866",
-  "Strong" = "#ff6900",
-  "Severe" = "#9e0000",
-  "Extreme" = "#2d0000"
-)
-
-mytheme2 <- theme(strip.text = element_text(size=10,color="white",family="sans",face="bold"),
-                 strip.background = element_rect(fill=OceansBlue2),
-                 axis.title = element_text(size=10,family="sans",color="black"),
-                 axis.text = element_text(size=10,family="sans",color="black"),
-                 panel.border=element_rect(colour="black",fill=NA,size=0.5))
-        
-
-png(paste0("AI/",current.year,"/Figure_3_Flames.png"),width=7,height=5,units="in",res=300)
-ggplot(data = clim_cat %>% filter(t>=as.Date(paste0(current.year-3,"-12-01"))), aes(x = t, y = temp)) +
-  geom_flame(aes(y2 = thresh, fill = "Moderate")) +
-  geom_flame(aes(y2 = thresh_2x, fill = "Strong")) +
-  geom_flame(aes(y2 = thresh_3x, fill = "Severe")) +
-  geom_flame(aes(y2 = thresh_4x, fill = "Extreme")) +
-  geom_line(aes(y = thresh_2x, col = "Strong"), size = 0.5, linetype = "dotted") +
-  #geom_line(aes(y = thresh_3x, col = "Severe"), size = 0.5, linetype = "dotted") +
-  #geom_line(aes(y = thresh_4x, col = "Extreme"), size = 0.5, linetype = "dotted") +
-  geom_line(aes(y = seas, col = "Climatology"), size = 0.5) +
-  geom_line(aes(y = thresh, col = "Moderate"), size = 0.5,linetype= "dotted") +
-  geom_line(aes(y = temp, col = "Temperature"), size = 0.5) +
-  scale_colour_manual(name = NULL, values = lineColCat,
-                      breaks = c("Temperature", "Climatology", 
-                                 "Moderate","Strong"#, "Severe"
-                      )) +
-  scale_fill_manual(name = "Heatwave\nIntensity", values = fillColCat, labels=c("Moderate","Strong","Severe","Extreme")) +
-  scale_x_date(date_labels = "%b %Y",expand=c(0.01,0)) +
-  guides(color="none")+
- # guides(colour = guide_legend(override.aes = list(linetype = c("solid", "solid", "dotted",
- #                                                               "dotted"#, "dotted", "dotted"
-  #),
- # size = c(0.6, 0.7, 0.7, 0.7#, 0.7, 0.7
- # )),
-  #ncol=6)) +
-  labs(y = "Sea Surface Temperature (°C)", x = NULL) + 
- # theme(legend.position="none") +
-  facet_wrap(~region,ncol=1,scales="free_y") +
-  mytheme2 + 
-  theme(legend.position=c(0.05,0.88),
-    #legend.key=element_blank(),
-    legend.text = element_text(size=7),
-    legend.key.size = unit(0.8,"line"),
-    legend.title = element_text(size=8),
-    axis.title.x=element_blank()
-   # legend.margin=margin(l=-6.25,t = -8.5, unit='cm'),
-   # plot.margin=unit(c(0.65,0,0.0,0),"cm")
-   )
-dev.off()
+# mhw <- (detect_event(ts2clm((data) %>%
+#                               filter(esr_region=="Western Aleutians") %>% 
+#                               rename(t=read_date,temp=meansst) %>% 
+#                               arrange(t), climatologyPeriod = c(climatology_start_date, climatology_end_date))))$clim %>% # uses 1986-2015 year2 baseline
+#   mutate(region="Western Aleutians") %>% 
+#   bind_rows((detect_event(ts2clm((data) %>%
+#                                    filter(esr_region=="Eastern Aleutians") %>% 
+#                                    rename(t=read_date,temp=meansst) %>% 
+#                                    arrange(t), climatologyPeriod = c(climatology_start_date, climatology_end_date))))$clim %>% 
+#               mutate(region="Eastern Aleutians")) %>% 
+#   bind_rows((detect_event(ts2clm((data) %>%
+#                                    filter(esr_region=="Central Aleutians") %>% 
+#                                    rename(t=read_date,temp=meansst) %>% 
+#                                    arrange(t), climatologyPeriod = c(climatology_start_date, climatology_end_date))))$clim %>% 
+#               mutate(region="Central Aleutians"))
+# 
+# clim_cat <- mhw %>%
+#   mutate(region=fct_relevel(region,"Western Aleutians")) %>% 
+#   group_by(region) %>% 
+#   dplyr::mutate(diff = thresh - seas,
+#                 thresh_2x = thresh + diff,
+#                 thresh_3x = thresh_2x + diff,
+#                 thresh_4x = thresh_3x + diff,
+#                 year=year(t))
+# 
+# # Set line colours
+# lineColCat <- c(
+#   "Temperature" = "black",
+#   "Climatology" = "gray20",
+#   "Moderate" = "gray60",
+#   "Strong" = "gray60"#,
+#   #"Severe" = "gray60"#,
+#   #"Extreme" = "gray60"
+# )
+# 
+# fillColCat <- c(
+#   "Moderate" = "#ffc866",
+#   "Strong" = "#ff6900",
+#   "Severe" = "#9e0000",
+#   "Extreme" = "#2d0000"
+# )
+# 
+# mytheme2 <- theme(strip.text = element_text(size=10,color="white",family="sans",face="bold"),
+#                  strip.background = element_rect(fill=OceansBlue2),
+#                  axis.title = element_text(size=10,family="sans",color="black"),
+#                  axis.text = element_text(size=10,family="sans",color="black"),
+#                  panel.border=element_rect(colour="black",fill=NA,size=0.5))
+#         
+# 
+# png(paste0("AI/",current.year,"/Figure_3_Flames.png"),width=7,height=5,units="in",res=300)
+# ggplot(data = clim_cat %>% filter(t>=as.Date(paste0(current.year-3,"-12-01"))), aes(x = t, y = temp)) +
+#   geom_flame(aes(y2 = thresh, fill = "Moderate")) +
+#   geom_flame(aes(y2 = thresh_2x, fill = "Strong")) +
+#   geom_flame(aes(y2 = thresh_3x, fill = "Severe")) +
+#   geom_flame(aes(y2 = thresh_4x, fill = "Extreme")) +
+#   geom_line(aes(y = thresh_2x, col = "Strong"), size = 0.5, linetype = "dotted") +
+#   #geom_line(aes(y = thresh_3x, col = "Severe"), size = 0.5, linetype = "dotted") +
+#   #geom_line(aes(y = thresh_4x, col = "Extreme"), size = 0.5, linetype = "dotted") +
+#   geom_line(aes(y = seas, col = "Climatology"), size = 0.5) +
+#   geom_line(aes(y = thresh, col = "Moderate"), size = 0.5,linetype= "dotted") +
+#   geom_line(aes(y = temp, col = "Temperature"), size = 0.5) +
+#   scale_colour_manual(name = NULL, values = lineColCat,
+#                       breaks = c("Temperature", "Climatology", 
+#                                  "Moderate","Strong"#, "Severe"
+#                       )) +
+#   scale_fill_manual(name = "Heatwave\nIntensity", values = fillColCat, labels=c("Moderate","Strong","Severe","Extreme")) +
+#   scale_x_date(date_labels = "%b %Y",expand=c(0.01,0)) +
+#   guides(color="none")+
+#  # guides(colour = guide_legend(override.aes = list(linetype = c("solid", "solid", "dotted",
+#  #                                                               "dotted"#, "dotted", "dotted"
+#   #),
+#  # size = c(0.6, 0.7, 0.7, 0.7#, 0.7, 0.7
+#  # )),
+#   #ncol=6)) +
+#   labs(y = "Sea Surface Temperature (°C)", x = NULL) + 
+#  # theme(legend.position="none") +
+#   facet_wrap(~region,ncol=1,scales="free_y") +
+#   mytheme2 + 
+#   theme(legend.position=c(0.05,0.88),
+#     #legend.key=element_blank(),
+#     legend.text = element_text(size=7),
+#     legend.key.size = unit(0.8,"line"),
+#     legend.title = element_text(size=8),
+#     axis.title.x=element_blank()
+#    # legend.margin=margin(l=-6.25,t = -8.5, unit='cm'),
+#    # plot.margin=unit(c(0.65,0,0.0,0),"cm")
+#    )
+# dev.off()
 
 #---------------------------------------------------------------------------------------------
 # Figure 4. Number of days during which marine heatwave conditions persisted in a given year. 
@@ -290,21 +249,21 @@ dev.off()
 mhw_wai <- (detect_event(ts2clm((data) %>%
                                   filter(esr_region=="Western Aleutians") %>% 
                                   rename(t=read_date,temp=meansst) %>% 
-                                  arrange(t), climatologyPeriod = c("1985-12-01", "2015-11-30"))))$event %>% 
+                                  arrange(t), climatologyPeriod = c(climatology_start_date, climatology_end_date))))$event %>% 
   mutate(region="WesternAleutians") %>% 
   data.frame
 
 mhw_eai <- ((detect_event(ts2clm((data) %>%
                                    filter(esr_region=="Eastern Aleutians") %>% 
                                    rename(t=read_date,temp=meansst) %>% 
-                                   arrange(t), climatologyPeriod = c("1985-12-01", "2015-11-30"))))$event %>% 
+                                   arrange(t), climatologyPeriod = c(climatology_start_date, climatology_end_date))))$event %>% 
               mutate(region="Eastern Aleutians")) %>% 
   data.frame
 
 mhw_cai <- ((detect_event(ts2clm((data) %>%
                                    filter(esr_region=="Central Aleutians") %>% 
                                    rename(t=read_date,temp=meansst) %>% 
-                                   arrange(t), climatologyPeriod = c("1985-12-01", "2015-11-30"))))$event %>% 
+                                   arrange(t), climatologyPeriod = c(climatology_start_date, climatology_end_date))))$event %>% 
               mutate(region="Central Aleutians")) %>% 
   data.frame
 
@@ -363,6 +322,7 @@ dev.off()
 
 #Figure of proportion mhw
 #connect to AKFIN
+# This uses 1985-2014 baseline per CRW
 con <- dbConnect(odbc::odbc(), "akfin", UID=getPass(msg="USER NAME"), PWD=getPass())
 
 #query by heatwave category

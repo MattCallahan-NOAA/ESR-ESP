@@ -2,6 +2,8 @@
 #ROMS Wrangling
 #6/22/21
 # Ran 10/5/23 for 2023
+
+# ran 9/5/24 for 2024
 #matt.callahan@noaa.gov
 
 library(RNetCDF)
@@ -10,6 +12,20 @@ require(tidyverse)
 require(lubridate)
 library(sf)
 library(akmarineareas2)
+
+####### 2024 ROMS download #######
+
+romsurl<-"https://data.pmel.noaa.gov/aclim/thredds/dodsC/B10K-K20_CORECFS/Level2/2020-2024/B10K-K20_CORECFS_2020-2024_average_temp_bottom5m.nc"
+newroms<-tidync(romsurl) 
+
+newroms <- newroms %>%
+  hyper_tibble()
+
+
+d24<-max(newroms$ocean_time)
+latest_date <- as_date(as_datetime(d24,origin="1900-01-01 00:00:00", tz = "UTC"))
+
+############
 
 #  Access netcdfs from THREDDS server (https://data.pmel.noaa.gov/aclim/thredds/catalog.html)
 
@@ -56,14 +72,23 @@ grid_lkp %>%
 ROMS<-tidync("https://data.pmel.noaa.gov/aclim/thredds/dodsC/B10K-K20_Level2_CORECFS_bottom5m_collection.nc") #new
 #ROMS <- tidync("https://data.pmel.noaa.gov/aclim/thredds/dodsC/Level2/B10K-K20_CORECFS_bottom5m.nc")
 
+# figure out max date last year:
+ebsROMS <-readRDS("EBS/Data/ROMS_bottom_temp_EBS_1985_2023.RDS")
+max(ebsROMS$ocean_time)
 # We can create a data frame of dates. To match our SST data, we only need bottom temperatures since 1985-01-01.
 # So we identify which dates to filter our from our subsequent query. 
+# to only use one year filter by max previous year
+d23<-max(ebsROMS$ocean_time)
+
 datevec <- ROMS %>% 
   activate("D4") %>% 
   hyper_tibble() %>% 
   mutate(date=as_date(as_datetime(ocean_time,origin="1900-01-01 00:00:00", tz = "UTC")),
          date_index=1:n()) %>% 
-  filter(date>=as.Date("1985-01-01"))
+  filter(#date>=as.Date("1985-01-01")
+    date_index>=d23)
+
+
 
 #  This is a beast. Extract all the temperature across the lookup grid since 1985. 
 #  Ends up being about 27 million rows. Save directly to RDS.
@@ -104,7 +129,7 @@ readRDS("EBS/Data/ROMS_bottom_temp_EBS_1985_2023.RDS") %>%
   mutate(date=as_date(as_datetime(ocean_time,origin="1900-01-01 00:00:00", tz = "UTC"))) %>% 
   saveRDS("EBS/Data/ROMS_bottom_temp_1985_2023_merged_ESR.RDS")
 
-
+# 2024 data pull (old one not updated)
 
 #------------------------------------------------------------------------------#
 
@@ -172,8 +197,8 @@ SSTdata <-
 #  Set year criteria to automatically identify the current and previous years
 current.year <- max(SSTdata$year2)
 last.year <- current.year-1
-mean.years <- 1986:2016 # We use the oldest 30-year time series as our climatological baseline.
-mean.lab <- "Mean 1986-2016"
+mean.years <- 1986:2015 # We use the oldest 30-year time series as our climatological baseline.
+mean.lab <- "Mean 1986-2015"
 
 ####---------------------------------------------------####
 #Plots for P1

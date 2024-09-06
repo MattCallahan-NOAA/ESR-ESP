@@ -10,6 +10,8 @@ library(heatwaveR)
 library(lubridate)
 library(viridis)
 library(cowplot)
+library(zoo)
+library(ggplottimeseries)
 
 #  Load 508 compliant NOAA colors
 OceansBlue1='#0093D0'
@@ -36,6 +38,12 @@ mytheme <- theme(strip.text = element_text(size=10,color="white",family="sans",f
 #specify ESR year
 current.year <- 2024
 last.year <- current.year-1
+climatology_start_year <- 1985
+climatology_start_date <- "1985-01-01"
+climatology_end_year <- 2014
+climatology_end_date <- "2014-12-31"
+mean.years <- climatology_start_year:climatology_end_year 
+mean.lab <- paste0("Mean ",climatology_start_year,"-",climatology_end_year)
 
 newdat <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Southeastern%20Bering%20Sea,Northern%20Bering%20Sea&start_date=19850101&end_date=20240831'), type = "application/json") %>% 
   bind_rows %>% 
@@ -59,8 +67,8 @@ mymean <- newdat %>%
   arrange(newdate) %>% 
   summarise(cumheat=sum(meansst)) %>% 
   group_by(Ecosystem_sub) %>% 
-  mutate(meanheat=mean(cumheat[between(year2,1986,2015)]),
-         sdheat=sd(cumheat[between(year2,1986,2015)]),
+  mutate(meanheat=mean(cumheat[between(year2,1986,climatology_end_year)]), # Mannually change
+         sdheat=sd(cumheat[between(year2,1986,climatology_end_year)]), # Mannually change
          anomaly=cumheat-meanheat)
 
 png("EBS/2024/Callahan_Fig1.png",width=6,height=3.375,units="in",res=300)
@@ -72,7 +80,7 @@ mymean %>%
   geom_hline(aes(yintercept=-sdheat),linetype=2) +
   facet_wrap(~Ecosystem_sub) + 
   mytheme + 
-  scale_x_continuous(expand=c(0.01,0.75)) + 
+  scale_x_continuous(expand=c(0.01,0.75), breaks= c(1990, 2000, 2010, 2020)) + 
   xlab("") + 
   ylab("Cumulative Annual SST Anomaly (°C)") +
   theme(plot.margin=unit(c(0.15,0.25,0.05,0),"cm"))
@@ -81,33 +89,33 @@ dev.off()
 #  Create Figure 2. Total cumulative sea surface temperature (sum of daily temperatures) for each year, apportioned
 #  by season: summer (Jun–Aug), fall (Sept–Nov), winter (Dec–Feb), spring (Mar–May). Negative
 #  values are the result of sea surface temperatures below zero
-png("EBS/2024/Callahan_Fig2.png",width=6,height=4,units="in",res=300)
-newdat %>% 
-  filter(year2>1985) %>% 
-  mutate(Season=case_when(
-    month%in%c(9,10,11)~"Fall",
-    month%in%c(12,1,2)~"Winter",
-    month%in%c(3,4,5)~"Spring",
-    month%in%c(6,7,8)~"Summer")) %>% 
-  data.frame %>% 
-  mutate(Season=factor(Season),
-         Season=fct_relevel(Season,"Fall","Winter","Spring","Summer")) %>% 
-  group_by(year2,Ecosystem_sub,Season) %>% 
-  summarise(cumheat=sum(meansst)) %>% 
-  data.frame %>% 
-  mutate(Season=fct_relevel(Season,"Summer","Fall","Winter","Spring")) %>% 
-  ggplot(aes(year2,cumheat,fill=Season)) + 
-  geom_bar(stat="identity") +
-  #geom_hline(data=mymean,aes(yintercept=meanheat),linetype=2) +
-  scale_fill_manual(name="",labels=c("Summer","Fall","Winter","Spring"),values=c(OceansBlue2,Crustacean1,UrchinPurple1,WavesTeal1)) +
-  facet_wrap(~Ecosystem_sub) + 
-  mytheme + 
-  scale_x_continuous(expand=c(0.01,0.75)) + 
-  xlab("") + 
-  ylab("Total Annual Cumulative Sea Surface Temperature (°C)") +
-  theme(plot.margin=unit(c(0.15,0.25,0.05,0),"cm"),
-        legend.position=c(0.1,0.9))
-dev.off()
+# png("EBS/2024/Callahan_Fig2.png",width=6,height=4,units="in",res=300)
+# newdat %>% 
+#  # filter(year2>1985) %>% 
+#   mutate(Season=case_when(
+#     month%in%c(9,10,11)~"Fall",
+#     month%in%c(12,1,2)~"Winter",
+#     month%in%c(3,4,5)~"Spring",
+#     month%in%c(6,7,8)~"Summer")) %>% 
+#   data.frame %>% 
+#   mutate(Season=factor(Season),
+#          Season=fct_relevel(Season,"Fall","Winter","Spring","Summer")) %>% 
+#   group_by(year2,Ecosystem_sub,Season) %>% 
+#   summarise(cumheat=sum(meansst)) %>% 
+#   data.frame %>% 
+#   mutate(Season=fct_relevel(Season,"Summer","Fall","Winter","Spring")) %>% 
+#   ggplot(aes(year2,cumheat,fill=Season)) + 
+#   geom_bar(stat="identity") +
+#   #geom_hline(data=mymean,aes(yintercept=meanheat),linetype=2) +
+#   scale_fill_manual(name="",labels=c("Summer","Fall","Winter","Spring"),values=c(OceansBlue2,Crustacean1,UrchinPurple1,WavesTeal1)) +
+#   facet_wrap(~Ecosystem_sub) + 
+#   mytheme + 
+#   scale_x_continuous(expand=c(0.01,0.75)) + 
+#   xlab("") + 
+#   ylab("Total Annual Cumulative Sea Surface Temperature (°C)") +
+#   theme(plot.margin=unit(c(0.15,0.25,0.05,0),"cm"),
+#         legend.position=c(0.1,0.9))
+# dev.off()
 
 #line for tyler
 png("EBS/2024/Callahan_Fig2_line.png",width=6,height=4,units="in",res=300)
@@ -132,11 +140,11 @@ newdat %>%
   scale_color_manual(name="",labels=c("Summer","Fall","Winter","Spring"),values=c(OceansBlue2,Crustacean1,UrchinPurple1,WavesTeal1)) +
   facet_wrap(~Ecosystem_sub) + 
   mytheme + 
-  scale_x_continuous(expand=c(0.01,0.75)) + 
+  scale_x_continuous(expand=c(0.01,0.75),breaks= c(1990, 2000, 2010, 2020)) + 
   xlab("") + 
   ylab("Seasonal mean Sea Surface Temperature (°C)") +
   theme(plot.margin=unit(c(0.15,0.25,0.05,0),"cm"),
-        legend.position=c(0.05,0.9),
+        legend.position=c(0.07,0.86),
         legend.title = element_blank())
 dev.off()
 
@@ -182,12 +190,12 @@ ggplot(data=seasmean, aes(year2,meansst,color=Season)) +
 mhw <- (detect_event(ts2clm(newdat %>%
                               filter(Ecosystem_sub=="Southeastern Bering Sea") %>% 
                               rename(t=date,temp=meansst) %>% 
-                              arrange(t), climatologyPeriod = c("1985-09-01", "2015-08-31"))))$clim %>% 
+                              arrange(t), climatologyPeriod = c(climatology_start_date, climatology_end_date))))$clim %>% 
   mutate(region="Southeastern Bering Sea") %>% 
   bind_rows((detect_event(ts2clm(newdat %>%
                                    filter(Ecosystem_sub=="Northern Bering Sea") %>% 
                                    rename(t=date,temp=meansst) %>% 
-                                   arrange(t), climatologyPeriod = c("1985-09-01", "2015-08-31"))))$clim %>% 
+                                   arrange(t), climatologyPeriod = c(climatology_start_date, climatology_end_date))))$clim %>% 
               mutate(region="Northern Bering Sea"))
 
 
@@ -240,7 +248,7 @@ mytheme2 <- theme(strip.text = element_text(size=10,color="white",family="sans",
 #png("SST_ESR/2020/EBS/Watson_Fig5_010421.png",width=7,height=5,units="in",res=   300)
 #Update date in this figure!
 png("EBS/2024/Callahan_Fig3.png",width=7,height=5,units="in",res=300)
-ggplot(data = clim_cat %>% filter(t>=as.Date("2020-09-01")), aes(x = t, y = temp)) +
+ggplot(data = clim_cat %>% filter(t>=as.Date(paste0(current.year-3,"-09-01"))), aes(x = t, y = temp)) +
   geom_line(aes(y = temp, col = "Temperature"), size = 0.85) +
   geom_flame(aes(y2 = thresh, fill = Moderate)) +
   geom_flame(aes(y2 = thresh_2x, fill = Strong)) +
@@ -275,71 +283,71 @@ filter(clim_cat, year==2024 & threshCriterion==TRUE)%>%
 
 #  Figure 4. Mean SST for the northern (left) and southeastern (right) Bering Sea shelves.
 
-#  Create plotting function that will allow selection of 2 ESR regions
-#  Load 508 compliant NOAA colors
-OceansBlue1='#0093D0'
-OceansBlue2='#0055A4' # dark blue
-Crustacean1='#FF8300'
-SeagrassGreen4='#D0D0D0' # This is just grey
-
-#  Assign colors to different time series.
-current.year.color <- "black"
-last.year.color <- OceansBlue1
-mean.color <- UrchinPurple1
-
-#  Set default plot theme
-theme_set(theme_cowplot())
-
-#  Specify legend position coordinates
-mylegx <- 0.625
-mylegy <- 0.865
-
-
-mean.years <- 1985:2014
-mean.lab <- "Mean 1985-2014"
-
-png("EBS/2024/Callahan_Fig4.png",width=7,height=5,units="in",res=300)
-ggplot() +
-  geom_line(data=newdat %>% filter(year2<last.year),
-            aes(newdate,meansst,group=factor(year2),col='mygrey'),size=0.3) +
-  geom_line(data=newdat %>% filter(year2==last.year),
-            aes(newdate,meansst,color='last.year.color'),size=0.75) +
-  geom_line(data=newdat %>% 
-              filter(year%in%mean.years) %>% 
-              group_by(Ecosystem_sub ,newdate) %>% 
-              summarise(meantemp=mean(meansst,na.rm=TRUE)),
-            aes(newdate,meantemp,col='mean.color'),size=0.5) +
-  geom_line(data=newdat %>% filter(year2==current.year),
-            aes(newdate,meansst,color='current.year.color'),size=0.95) +
-  facet_wrap(~Ecosystem_sub ,ncol=2) + 
-  scale_color_manual(name="",
-                     breaks=c('current.year.color','last.year.color','mygrey','mean.color'),
-                     values=c('current.year.color'=current.year.color,'last.year.color'=last.year.color,'mygrey'=SeagrassGreen4,'mean.color'=mean.color),
-                     labels=c(current.year,last.year,paste0('1985-',last.year-1),mean.lab)) +
-  ylab("Mean Sea Surface Temperature (C)") + 
-  xlab("") +
-  scale_x_date(date_breaks="1 month",
-               date_labels = "%b",
-               expand = c(0.025,0.025)) + 
-  theme(legend.position=c(mylegx,mylegy),
-        legend.text = element_text(size=8,family="sans"),
-        legend.background = element_blank(),
-        legend.title = element_blank(),
-        strip.text = element_text(size=10,color="white",family="sans",face="bold"),
-        strip.background = element_rect(fill=OceansBlue2),
-        axis.title = element_text(size=10,family="sans"),
-        axis.text = element_text(size=10,family="sans"),
-        panel.border=element_rect(colour="black",size=0.75),
-        axis.text.x=element_text(color=c("black",NA,NA,"black",NA,NA,"black",NA,NA,"black",NA,NA,NA)),
-        legend.key.size = unit(0.35,"cm"),
-        plot.margin=unit(c(0.65,0,0.65,0),"cm")) 
-dev.off()
+# #  Create plotting function that will allow selection of 2 ESR regions
+# #  Load 508 compliant NOAA colors
+# OceansBlue1='#0093D0'
+# OceansBlue2='#0055A4' # dark blue
+# Crustacean1='#FF8300'
+# SeagrassGreen4='#D0D0D0' # This is just grey
+# 
+# #  Assign colors to different time series.
+# current.year.color <- "black"
+# last.year.color <- OceansBlue1
+# mean.color <- UrchinPurple1
+# 
+# #  Set default plot theme
+# theme_set(theme_cowplot())
+# 
+# #  Specify legend position coordinates
+# mylegx <- 0.625
+# mylegy <- 0.865
+# 
+# 
+# mean.years <- 1985:2014
+# mean.lab <- "Mean 1985-2014"
+# 
+# png("EBS/2024/Callahan_Fig4.png",width=7,height=5,units="in",res=300)
+# ggplot() +
+#   geom_line(data=newdat %>% filter(year2<last.year),
+#             aes(newdate,meansst,group=factor(year2),col='mygrey'),size=0.3) +
+#   geom_line(data=newdat %>% filter(year2==last.year),
+#             aes(newdate,meansst,color='last.year.color'),size=0.75) +
+#   geom_line(data=newdat %>% 
+#               filter(year%in%mean.years) %>% 
+#               group_by(Ecosystem_sub ,newdate) %>% 
+#               summarise(meantemp=mean(meansst,na.rm=TRUE)),
+#             aes(newdate,meantemp,col='mean.color'),size=0.5) +
+#   geom_line(data=newdat %>% filter(year2==current.year),
+#             aes(newdate,meansst,color='current.year.color'),size=0.95) +
+#   facet_wrap(~Ecosystem_sub ,ncol=2) + 
+#   scale_color_manual(name="",
+#                      breaks=c('current.year.color','last.year.color','mygrey','mean.color'),
+#                      values=c('current.year.color'=current.year.color,'last.year.color'=last.year.color,'mygrey'=SeagrassGreen4,'mean.color'=mean.color),
+#                      labels=c(current.year,last.year,paste0('1985-',last.year-1),mean.lab)) +
+#   ylab("Mean Sea Surface Temperature (C)") + 
+#   xlab("") +
+#   scale_x_date(date_breaks="1 month",
+#                date_labels = "%b",
+#                expand = c(0.025,0.025)) + 
+#   theme(legend.position=c(mylegx,mylegy),
+#         legend.text = element_text(size=8,family="sans"),
+#         legend.background = element_blank(),
+#         legend.title = element_blank(),
+#         strip.text = element_text(size=10,color="white",family="sans",face="bold"),
+#         strip.background = element_rect(fill=OceansBlue2),
+#         axis.title = element_text(size=10,family="sans"),
+#         axis.text = element_text(size=10,family="sans"),
+#         panel.border=element_rect(colour="black",size=0.75),
+#         axis.text.x=element_text(color=c("black",NA,NA,"black",NA,NA,"black",NA,NA,"black",NA,NA,NA)),
+#         legend.key.size = unit(0.35,"cm"),
+#         plot.margin=unit(c(0.65,0,0.65,0),"cm")) 
+# dev.off()
 
 
 # Figure 5. Time series decomposition
 
 #devtools::install_github("brisneve/ggplottimeseries")
-library(ggplottimeseries)
+
 
 #  The following could all be combined but I have left it separated out to be more transparent.
 df1 <- newdat %>% 
@@ -366,8 +374,8 @@ df <- df1 %>%
 #  Create the horizontal mean and sd lines for the 30 year baseline period.
 dfmean <- df %>% 
   group_by(Ecosystem_sub) %>% 
-  summarise(meantrend=mean(trend[between(year,1985,2014)],na.rm=TRUE),
-            sdtrend=sd(trend[between(year,1985,2014)],na.rm=TRUE))
+  summarise(meantrend=mean(trend[between(year,climatology_start_year,climatology_end_year)],na.rm=TRUE),
+            sdtrend=sd(trend[between(year,climatology_start_year,climatology_end_year)],na.rm=TRUE))
 
 
 png("EBS/2024/Callahan_Fig5.png",width=7,height=5,units="in",res=300)

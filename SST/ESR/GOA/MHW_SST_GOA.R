@@ -72,8 +72,13 @@ mylegy <- 0.865
 
 current.year <- max(newdat$year)
 last.year <- current.year-1
-mean.years <- 1985:2014
-mean.lab <- "Mean 1985-2014"
+climatology_start_year <- 1985
+climatology_start_date <- "1985-01-01"
+climatology_end_year <- 2014
+climatology_end_date <- "2014-12-31"
+mean.years <- climatology_start_year:climatology_end_year 
+mean.lab <- paste0("Mean ",climatology_start_year,"-",climatology_end_year)
+
 
 png(paste0("GOA/",current.year,"/Callahan_Fig1.png"),width=7,height=5,units="in",res=300)
 ggplot() +
@@ -123,12 +128,12 @@ dev.off()
 mhw <- (detect_event(ts2clm(newdat %>%
                               filter(Ecosystem_sub=="Western Gulf of Alaska") %>% 
                               rename(t=date,temp=meansst) %>% 
-                              arrange(t), climatologyPeriod = c("1985-12-01", "2014-11-30"))))$clim %>% 
+                              arrange(t), climatologyPeriod = c(climatology_start_date, climatology_end_date))))$clim %>% 
   mutate(region="Western Gulf of Alaska") %>% 
   bind_rows((detect_event(ts2clm(newdat %>%
                                    filter(Ecosystem_sub=="Eastern Gulf of Alaska") %>% 
                                    rename(t=date,temp=meansst) %>% 
-                                   arrange(t), climatologyPeriod = c("1985-12-01", "2014-11-30"))))$clim %>% 
+                                   arrange(t), climatologyPeriod = c(climatology_start_date, climatology_end_date))))$clim %>% 
               mutate(region="Eastern Gulf of Alaska"))
 
 
@@ -177,8 +182,8 @@ mytheme <- theme(strip.text = element_text(size=10,color="white",family="sans",f
                  #legend.key.size = unit(1,"line")
                  )
 
-png(paste0("GOA/",current.year,"/Callahan_Figure_2_Flames_GOA_2023.png"),width=7,height=5,units="in",res=300)
-ggplot(data = clim_cat %>% filter(t>=as.Date("2020-09-01")), aes(x = t, y = temp)) +
+png(paste0("GOA/",current.year,"/Callahan_Figure_2_Flames_GOA.png"),width=7,height=5,units="in",res=300)
+ggplot(data = clim_cat %>% filter(t>=as.Date(paste0(current.year-3,"-09-01"))), aes(x = t, y = temp)) +
   geom_line(aes(y = temp, col = "Temperature"), size = 0.85) +
   geom_flame(aes(y2 = thresh, fill = Moderate)) +
   geom_flame(aes(y2 = thresh_2x, fill = Strong)) +
@@ -239,14 +244,14 @@ dev.off()
 mhw_wgoa <- (detect_event(ts2clm(newdat %>%
                                   filter(Ecosystem_sub=="Western Gulf of Alaska") %>% 
                                   rename(t=date,temp=meansst) %>% 
-                                  arrange(t), climatologyPeriod = c("1985-12-01", "2015-11-30"))))$event %>% 
+                                  arrange(t), climatologyPeriod = c(climatology_start_date, climatology_end_date))))$event %>% 
   mutate(region="Western Gulf of Alaska") %>% 
   data.frame
 
 mhw_egoa <- ((detect_event(ts2clm(newdat %>%
                                    filter(Ecosystem_sub=="Eastern Gulf of Alaska") %>% 
                                    rename(t=date,temp=meansst) %>% 
-                                   arrange(t), climatologyPeriod = c("1985-12-01", "2015-11-30"))))$event %>% 
+                                   arrange(t), climatologyPeriod = c(climatology_start_date, climatology_end_date))))$event %>% 
               mutate(region="Eastern Gulf of Alaska")) %>% 
   data.frame
 
