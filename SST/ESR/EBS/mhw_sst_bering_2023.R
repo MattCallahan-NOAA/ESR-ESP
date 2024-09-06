@@ -10,7 +10,6 @@ library(heatwaveR)
 library(lubridate)
 library(viridis)
 library(cowplot)
-library(zoo)
 library(ggplottimeseries)
 
 #  Load 508 compliant NOAA colors
@@ -386,11 +385,12 @@ df %>%
   geom_hline(data=dfmean,aes(yintercept=meantrend+sdtrend),linetype=2,color="red") +
   geom_hline(data=dfmean,aes(yintercept=meantrend-sdtrend),linetype=2,color="red") +
   facet_wrap(~Ecosystem_sub) + 
+  theme_bw()+
   theme(strip.text = element_text(size=10,color="white",family="sans",face="bold"),
         strip.background = element_rect(fill=OceansBlue2),
         axis.title = element_text(size=10,family="sans"),
         axis.text = element_text(size=10,family="sans"),
-        panel.border=element_rect(colour="black",size=0.5),
+        panel.border=element_rect(colour="black",size=0.5, fill=NA),
         plot.margin=unit(c(0.65,0,0.65,0),"cm")) + 
   ylab("Sea surface temperature (C)") + 
   xlab("Date")
