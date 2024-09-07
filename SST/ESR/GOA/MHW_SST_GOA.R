@@ -49,7 +49,7 @@ newdat <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/
          newdate=as.Date(ifelse(month>=12,as.character(as.Date(paste("1999",month,day,sep="-"),format="%Y-%m-%d")),
                                 as.character(as.Date(paste("2000",month,day,sep="-"),format="%Y-%m-%d"))),format("%Y-%m-%d")),
          year2=ifelse(month>=12,year+1,year),
-         Ecosystem_sub=factor(Ecosystem_sub,"Western Gulf of Alaska")) %>% 
+         Ecosystem_sub=factor(Ecosystem_sub,c("Western Gulf of Alaska", "Eastern Gulf of Alaska"))) %>% 
   arrange(date) 
 
 #--------------------------------------------------------------------------------------------------------------------------
@@ -80,7 +80,7 @@ mean.years <- climatology_start_year:climatology_end_year
 mean.lab <- paste0("Mean ",climatology_start_year,"-",climatology_end_year)
 
 
-png(paste0("GOA/",current.year,"/Callahan_Fig1_test.png"),width=7,height=5,units="in",res=300)
+png(paste0("GOA/",current.year,"/Callahan_Fig1.png"),width=7,height=5,units="in",res=300)
 ggplot() +
   geom_line(data=newdat %>% filter(year2<last.year),
             aes(newdate,meansst,group=factor(year2),col='mygrey'),size=0.3) +
@@ -139,7 +139,7 @@ mhw <- (detect_event(ts2clm(newdat %>%
 
 
 clim_cat <- mhw %>%
-  mutate(region=factor(region,"Western Gulf of Alaska")) %>% 
+  mutate(region=factor(region,c("Western Gulf of Alaska", "Eastern Gulf of Alaska"))) %>% 
   group_by(region) %>% 
   dplyr::mutate(diff = thresh - seas,
                 thresh_2x = thresh + diff,
@@ -281,8 +281,8 @@ png(paste0("GOA/",current.year,"/Callahan_Figure3_MHW_days_season.png"),width=6,
 annualevents %>% 
   gather(Period,Duration,-c(year2,region)) %>% 
   data.frame %>% 
-  mutate(Period=factor(Period,"Summer","Fall","Winter","Spring")#,
-         #region=fct_rev(region)
+  mutate(Period=factor(Period,c("Summer","Fall","Winter","Spring")),
+         region=factor(region, c("Western Gulf of Alaska", "Eastern Gulf of Alaska"))
          ) %>% 
   #filter(Period!="totaldays") %>% 
   ggplot() +

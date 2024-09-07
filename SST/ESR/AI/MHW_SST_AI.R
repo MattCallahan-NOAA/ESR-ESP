@@ -113,7 +113,7 @@ dfeai <- dts1(eai$read_date,eai$meansst,365.25, type = "additive") %>%
 df <- dfwai %>% 
   bind_rows(dfcai) %>% 
   bind_rows(dfeai) %>% 
-  mutate(ecosystem_sub=fct_relevel(ecosystem_sub,"Western Aleutians"),
+  mutate(ecosystem_sub=factor(ecosystem_sub,c("Western Aleutians", "Central Aleutians", "Eastern Aleutians")),
          year=year(date))
 
 dfmean <- df %>% 
@@ -121,7 +121,7 @@ dfmean <- df %>%
   summarise(meantrend=mean(trend[between(year,climatology_start_year,climatology_end_year)],na.rm=TRUE), # uses 1985-2014 since visualization uses calendar year
             sdtrend=sd(trend[between(year,climatology_start_year,climatology_end_year)],na.rm=TRUE))
 
-png(paste0("AI/",current.year,"/Figure_2_SST_AI_ESR_TimeSeries_updated.png"),width=6,height=4,units="in",res=300)
+png(paste0("AI/",current.year,"/Figure_2_SST_AI_ESR_TimeSeries_updated_test.png"),width=6,height=4,units="in",res=300)
 df %>% 
   ggplot(aes(x = date, y = trend)) + 
   geom_line() + 
@@ -291,12 +291,12 @@ annualevents <- lapply(1:nrow(mhw_wai),function(x)data.frame(date=seq.Date(as.Da
   arrange(year2) %>% 
   filter(!is.na(region))
 
-png(paste0("AI/",current.year,"/Figure_4_MHW_days_season_updated.png"),width=6,height=3.375,units="in",res=300)
+png(paste0("AI/",current.year,"/Figure_4_MHW_days_season_updated_test.png"),width=6,height=3.375,units="in",res=300)
 annualevents %>% 
   gather(Period,Duration,-c(year2,region)) %>% 
   data.frame %>% 
-  mutate(Period=fct_relevel(Period,"Fall","Summer","Spring","Winter"),
-         region=fct_relevel(region,"Western Aleutians","Central Aleutians","Eastern Aleutians")) %>% 
+  mutate(Period=factor(Period, c("Fall","Summer","Spring","Winter")),
+         region=factor(region,c("Western Aleutians","Central Aleutians","Eastern Aleutians"))) %>% 
   #filter(Period!="totaldays") %>% 
   ggplot() +
   geom_bar(aes(year2,Duration,fill=Period),stat="identity") + 
