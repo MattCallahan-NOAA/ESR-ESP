@@ -268,6 +268,7 @@ mylegy <- 0.865
 #             minlat=min(latitude),
 #             maxlon=max(longitude),
 #             minlon=min(longitude))
+options(timeout=600)
 r.ak <- marmap::as.raster(getNOAA.bathy(lon1=lkp$minlon,lon2=lkp$maxlon,lat1=lkp$minlat,lat2=lkp$maxlat, resolution=0.25))
 
 ROMS<-readRDS("EBS/Data/ROMS_bottom_temp_1985_2024_merged_ESR.RDS")%>%
@@ -798,7 +799,7 @@ pb5<-ggplot() +
   #scale_y_continuous(labels=scaleFUN)+
   ylim(c(-2,13))+
   scale_x_date(limits=c(as_date("1999-09-01"),as_date("2000-08-31")),date_breaks="1 month",date_labels = "%b",expand=c(0.01,0)) +
-  ylab("ROMS Bottom Temperature (°C)") 
+  ylab("ROMS Bottom Temperature (°C)") +
   #xlab("Week") +
   theme(legend.position=c(0.08,0.9),
         legend.text = element_text(size=15,family="sans"),
