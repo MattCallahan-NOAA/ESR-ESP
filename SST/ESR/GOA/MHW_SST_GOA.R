@@ -49,7 +49,7 @@ newdat <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/
          newdate=as.Date(ifelse(month>=12,as.character(as.Date(paste("1999",month,day,sep="-"),format="%Y-%m-%d")),
                                 as.character(as.Date(paste("2000",month,day,sep="-"),format="%Y-%m-%d"))),format("%Y-%m-%d")),
          year2=ifelse(month>=12,year+1,year),
-         Ecosystem_sub=fct_relevel(Ecosystem_sub,"Western Gulf of Alaska")) %>% 
+         Ecosystem_sub=factor(Ecosystem_sub,"Western Gulf of Alaska")) %>% 
   arrange(date) 
 
 #--------------------------------------------------------------------------------------------------------------------------
@@ -80,12 +80,13 @@ mean.years <- climatology_start_year:climatology_end_year
 mean.lab <- paste0("Mean ",climatology_start_year,"-",climatology_end_year)
 
 
-png(paste0("GOA/",current.year,"/Callahan_Fig1.png"),width=7,height=5,units="in",res=300)
+png(paste0("GOA/",current.year,"/Callahan_Fig1_test.png"),width=7,height=5,units="in",res=300)
 ggplot() +
   geom_line(data=newdat %>% filter(year2<last.year),
             aes(newdate,meansst,group=factor(year2),col='mygrey'),size=0.3) +
   geom_line(data=newdat %>% filter(year2==last.year),
-            aes(newdate,meansst,color='last.year.color'),size=0.75) +
+            aes(newdate,
+                meansst,color='last.year.color'),size=0.75) +
   geom_line(data=newdat %>% 
               filter(year%in%mean.years) %>% 
               group_by(Ecosystem_sub ,newdate) %>% 
@@ -138,7 +139,7 @@ mhw <- (detect_event(ts2clm(newdat %>%
 
 
 clim_cat <- mhw %>%
-  mutate(region=fct_relevel(region,"Western Gulf of Alaska")) %>% 
+  mutate(region=factor(region,"Western Gulf of Alaska")) %>% 
   group_by(region) %>% 
   dplyr::mutate(diff = thresh - seas,
                 thresh_2x = thresh + diff,
@@ -271,17 +272,18 @@ annualevents <- lapply(1:nrow(mhw_wgoa),function(x)data.frame(date=seq.Date(as.D
             Winter=length(month[month%in%c(12,1,2)]),
             Spring=length(month[month%in%c(3,4,5)]),
             Summer=length(month[month%in%c(6,7,8)])) %>% 
-  right_join(data.frame(year2=1985:2023)) %>% 
+  right_join(data.frame(year2=1985:current.year)) %>% 
   replace_na(list(Fall=0,Winter=0,Spring=0,Summer=0)) %>% 
   arrange(year2) %>% 
   filter(!is.na(region))
 
-png(paste0("GOA/",current.year,"/Callahan_Figure3_MHW_days_season_2023.png"),width=6,height=3.375,units="in",res=300)
+png(paste0("GOA/",current.year,"/Callahan_Figure3_MHW_days_season.png"),width=6,height=3.375,units="in",res=300)
 annualevents %>% 
   gather(Period,Duration,-c(year2,region)) %>% 
   data.frame %>% 
-  mutate(Period=fct_relevel(Period,"Summer","Fall","Winter","Spring"),
-         region=fct_rev(region)) %>% 
+  mutate(Period=factor(Period,"Summer","Fall","Winter","Spring")#,
+         #region=fct_rev(region)
+         ) %>% 
   #filter(Period!="totaldays") %>% 
   ggplot() +
   geom_bar(aes(year2,Duration,fill=Period),stat="identity") + 
@@ -340,7 +342,7 @@ group by ecosystem_sub")))%>%
 #also calculate proportion and reorder ecosystems
 mhw_goa2<-mhw_goa%>%left_join(goa_totals, by="ecosystem_sub")%>%
   mutate(prop_mhw=mhw_count/total_count,
-         ecosystem_sub=fct_relevel(ecosystem_sub,
+         ecosystem_sub=factor(ecosystem_sub,
                                    c("Western Gulf of Alaska", "Eastern Gulf of Alaska")))
 #reassign ice to no heatwave
 mhw_goa2$heatwave_category<-recode(mhw_goa2$heatwave_category, "I"="0")
@@ -408,7 +410,7 @@ mhw_goa2%>%ggplot()+
    # reassign ice to no heatwave
     mhw_goa2$heatwave_category<-recode(mhw_goa2$heatwave_category, "I"="0")
     mhw_goa2$Intensity<-recode(mhw_goa2$heatwave_category, "0"="No heatwave", "1"="Moderate", "2"="Strong", "3"="Severe", "4"="Extreme")
-    mhw_goa2<-mhw_goa2%>%mutate(Intensity=fct_relevel(Intensity, c("No heatwave", "Moderate", "Strong"#, "Severe"
+    mhw_goa2<-mhw_goa2%>%mutate(Intensity=factor(Intensity, c("No heatwave", "Moderate", "Strong"#, "Severe"
                                                                    )))
     #calculate 5 day averages
     mhw_goa2_5<-mhw_goa2%>%

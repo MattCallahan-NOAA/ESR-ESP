@@ -269,6 +269,7 @@ mylegy <- 0.865
 #             maxlon=max(longitude),
 #             minlon=min(longitude))
 r.ak <- marmap::as.raster(getNOAA.bathy(lon1=lkp$minlon,lon2=lkp$maxlon,lat1=lkp$minlat,lat2=lkp$maxlat, resolution=0.25))
+
 ROMS<-readRDS("EBS/Data/ROMS_bottom_temp_1985_2024_merged_ESR.RDS")%>%
   mutate(depth=round(raster::extract(r.ak,cbind(lon_rho,lat_rho),method="bilinear"),0))
 
@@ -691,6 +692,8 @@ sst_domains <- sst_domains %>%
   bind_rows(sst_domains_2024)
 
 saveRDS(sst_domains, "EBS/Data/sst_in_min_out_2024.RDS")
+
+sst_domains <- readRDS("EBS/Data/sst_in_min_out_2024.RDS")
 #update 2024
 #prepare data for plotting
 sst_domains<-sst_domains%>%
@@ -704,7 +707,7 @@ sst_domains<-sst_domains%>%
          year2=ifelse(month>=9,year+1,year)) %>% # To have our years go from Sep-Aug, force Sep-Dec to be part of the subsequent year.
   arrange(read_date)
 
-sst_domains$domain<-fct_relevel(sst_domains$domain, c("outer", "middle", "inner"))
+sst_domains$domain<-factor(sst_domains$domain, c("outer", "middle", "inner"))
 
 #plot
 pb4 <- ggplot() +
@@ -770,7 +773,7 @@ ROMSdata3<-ROMS %>%
                                 as.character(as.Date(paste("2000",month,day,sep="-"),format="%Y-%m-%d"))),format("%Y-%m-%d")),
          year2=ifelse(month>=9,year+1,year))
 
-ROMSdata3$domain<-fct_relevel(ROMSdata3$domain, c("outer", "middle", "inner"))
+ROMSdata3$domain <- factor(ROMSdata3$domain, c("outer", "middle", "inner"))
 
 pb5<-ggplot() +
   geom_line(data=ROMSdata3 %>% filter(year2<last.year), # Older years are grey lines.
@@ -795,7 +798,7 @@ pb5<-ggplot() +
   #scale_y_continuous(labels=scaleFUN)+
   ylim(c(-2,13))+
   scale_x_date(limits=c(as_date("1999-09-01"),as_date("2000-08-31")),date_breaks="1 month",date_labels = "%b",expand=c(0.01,0)) +
-  ylab("ROMS Bottom Temperature (°C)") + 
+  ylab("ROMS Bottom Temperature (°C)") 
   #xlab("Week") +
   theme(legend.position=c(0.08,0.9),
         legend.text = element_text(size=15,family="sans"),

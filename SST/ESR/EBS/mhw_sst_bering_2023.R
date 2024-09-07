@@ -126,12 +126,11 @@ newdat %>%
     month%in%c(3,4,5)~"Spring",
     month%in%c(6,7,8)~"Summer")) %>% 
   data.frame %>% 
-  mutate(Season=factor(Season),
-         Season=fct_relevel(Season,"Fall","Winter","Spring","Summer")) %>% 
+  mutate(Season=factor(Season, c("Fall","Winter","Spring","Summer"))) %>% 
   group_by(year2,Ecosystem_sub,Season) %>% 
   summarise(meansst=mean(meansst)) %>% 
   data.frame %>% 
-  mutate(Season=fct_relevel(Season,"Summer","Fall","Winter","Spring")) %>% 
+  mutate(Season=factor(Season, c("Summer","Fall","Winter","Spring"))) %>% 
   ggplot(aes(year2,meansst,color=Season)) + 
   geom_line(stat="identity") +
   geom_point(stat="identity")+
@@ -157,11 +156,11 @@ dev.off()
     month%in%c(6,7,8)~"Summer")) %>% 
   data.frame %>% 
   mutate(Season=factor(Season),
-         Season=fct_relevel(Season,"Fall","Winter","Spring","Summer")) %>% 
+         Season=factor(Season,c("Fall","Winter","Spring","Summer"))) %>% 
   group_by(year2,Ecosystem_sub,Season) %>% 
   summarise(meansst=mean(meansst)) %>% 
   data.frame %>% 
-  mutate(Season=fct_relevel(Season,"Summer","Fall","Winter","Spring"))
+  mutate(Season=factor(Season,c("Summer","Fall","Winter","Spring")))
 
 seas_mean_sd<-seasmean%>%
   group_by(Ecosystem_sub, Season) %>%
