@@ -182,3 +182,19 @@ left join afsc_host.spr_sum_sst_sebs d
 on c.year=d.year
 order by c.year desc
 ;
+
+
+-- brand_new_atf_sst_indicator
+select 2024 submission_year, 'brand_new_atf_sst_indicator' indicator_name, extract(year from read_date) indictator_year, round(avg(temp),2) as mean_sst
+--join sst and lookup tables
+from afsc.erddap_crw_sst a
+inner join afsc.erddap_crw_sst_spatial_lookup b
+on a.crw_id=b.id
+--Season: Spring definted as Feb-April
+where extract(month from read_date) in (2,3,4)
+--Area: GOA central western goa 
+and nmfsarea in (620, 630)
+and depth <= -150
+and depth >= -900
+group by extract(year from read_date)
+order by extract(year from read_date) asc;
