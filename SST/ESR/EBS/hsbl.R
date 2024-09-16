@@ -59,6 +59,7 @@ hsbl<- lapply(myyears, FUN=function(x) paste0(
   bind_rows()
 
   saveRDS(hsbl, "EBS/Data/hsbl.RDS")
+  hsbl<-readRDS("EBS/Data/hsbl.RDS")
 
 # point in polygon operation for lookup table
   sf_use_s2(FALSE)
@@ -134,7 +135,8 @@ hsbl<- lapply(myyears, FUN=function(x) paste0(
   mean.years <- 1986:2016 # We use the oldest 30-year time series as our climatological baseline.
   mean.lab <- "Mean 1986-2016"
   
-  hsbl$domain<-fct_relevel(hsbl$domain, c("outer", "middle", "inner"))
+  hsbl$domain<-factor(hsbl$domain, c("outer", "middle", "inner"))
+
   
   pb5<-ggplot() +
     geom_line(data=hsbl %>% filter(year2<last.year), # Older years are grey lines.
