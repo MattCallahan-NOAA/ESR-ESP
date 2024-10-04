@@ -138,7 +138,7 @@ newdat %>%
   geom_line(stat="identity") +
   geom_point(stat="identity")+
   #geom_hline(data=mymean,aes(yintercept=meanheat),linetype=2) +
-  scale_color_manual(name="",labels=c("Summer","Fall","Winter","Spring"),values=c(OceansBlue2,Crustacean1,UrchinPurple1,WavesTeal1)) +
+  scale_color_manual(name="",labels=c("Summer","Fall","Winter","Spring"),values=c(OceansBlue2,Crustacean1,CoralRed1,WavesTeal1)) +
   facet_wrap(~Ecosystem_sub) + 
   mytheme + 
   scale_x_continuous(expand=c(0.01,0.75),breaks= c(1990, 2000, 2010, 2020)) + 
@@ -170,21 +170,23 @@ seas_mean_sd<-seasmean%>%
   summarize(avg_sst=mean(meansst),
             sd_sst=sd(meansst))
 
+png("EBS/2024/Callahan_Fig2_line_sd.png",width=6,height=4,units="in",res=300)
 ggplot(data=seasmean, aes(year2,meansst,color=Season)) + 
-  geom_line(stat="identity") +
-  geom_point(stat="identity")+
-  geom_hline(data=seas_mean_sd,aes(yintercept=avg_sst, color=Season),linetype=2) +
+  geom_hline(data=seas_mean_sd,aes(yintercept=avg_sst, color=Season)) +
   geom_hline(data=seas_mean_sd,aes(yintercept=avg_sst-sd_sst, color=Season),linetype=2) +
   geom_hline(data=seas_mean_sd,aes(yintercept=avg_sst+sd_sst, color=Season),linetype=2) +
-  scale_color_manual(name="",labels=c("Summer","Fall","Winter","Spring"),values=c(OceansBlue2,Crustacean1,UrchinPurple1,WavesTeal1)) +
+  geom_line(stat="identity") +
+  geom_point(stat="identity")+
+  scale_color_manual(name="",labels=c("Summer","Fall","Winter","Spring"),values=c(OceansBlue2,Crustacean1,CoralRed1,WavesTeal1)) +
   facet_wrap(~Ecosystem_sub) + 
   mytheme + 
   scale_x_continuous(expand=c(0.01,0.75)) + 
   xlab("") + 
   ylab("Seasonal mean Sea Surface Temperature (°C)") +
   theme(plot.margin=unit(c(0.15,0.25,0.05,0),"cm"),
-        legend.position=c(0.05,0.9),
+        legend.position=c(0.07,0.86),
         legend.title = element_blank())
+dev.off()
 
 
 #  Figure 3. Marine heatwaves in the southeastern and northern Bering Sea since September 2018
