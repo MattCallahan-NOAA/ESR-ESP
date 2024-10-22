@@ -180,7 +180,7 @@ ggplot(data=seasmean, aes(year2,meansst,color=Season)) +
   scale_color_manual(name="",labels=c("Summer","Fall","Winter","Spring"),values=c(OceansBlue2,Crustacean1,CoralRed1,WavesTeal1)) +
   facet_wrap(~Ecosystem_sub) + 
   mytheme + 
-  scale_x_continuous(expand=c(0.01,0.75)) + 
+  #scale_x_continuous(expand=c(0.01,0.75)) + 
   xlab("") + 
   ylab("Seasonal mean Sea Surface Temperature (°C)") +
   theme(plot.margin=unit(c(0.15,0.25,0.05,0),"cm"),
