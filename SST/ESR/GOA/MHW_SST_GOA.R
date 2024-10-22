@@ -315,7 +315,7 @@ b.ecosystem_sub
 from (select
 crw_id, read_date, heatwave_category
 from afsc.erddap_crw_sst
-where extract(year from read_date)=2024) a
+where extract(year from read_date)=",current.year,") a
 inner join (select id, ecosystem_sub 
 from afsc.erddap_crw_sst_spatial_lookup
 where ecosystem ='Gulf of Alaska'
@@ -350,6 +350,14 @@ mhw_goa2$heatwave_category<-recode(mhw_goa2$heatwave_category, "I"="0")
 saveRDS(mhw_goa2, "GOA/Data/prop_mhw_goa2024.RDS")
 mhw_goa2<-readRDS("GOA/Data/prop_mhw_goa2024.RDS")
 
+# what are the categories?
+unique(mhw_goa2$heatwave_category)
+# wtf is L?
+mhw_goa2 %>%
+  filter(heatwave_category=="L")
+
+mhw_goa2 <-mhw_goa2 %>%
+  filter(heatwave_category!="L")
 
 #calculate 5 day averages
 mhw_goa2_5<-mhw_goa2%>%
