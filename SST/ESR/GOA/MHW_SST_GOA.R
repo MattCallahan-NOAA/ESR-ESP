@@ -451,7 +451,7 @@ mhw_goa2%>%ggplot()+
         ) 
     }
     
-    png("GOA/2023/goa_mhw_by_status_5day.png", width=9,height=4.5,units="in",res=300)
+    png(paste0("GOA/",current.year,"/goa_mhw_by_status_5day.png"), width=9,height=4.5,units="in",res=300)
     count_by_mhw_d(mhw_goa2_5)
     dev.off()
     
