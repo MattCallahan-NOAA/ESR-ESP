@@ -3,6 +3,8 @@ library(sf)
 library(ggplot2)
 library(akgfmaps)
 
+#### Initial draft ####
+
 #connect to akfin
 jdbcDriver <-jdbcDriver <- RJDBC::JDBC(driverClass="oracle.jdbc.OracleDriver",
                                        classPath="java/ojdbc8.jar")
