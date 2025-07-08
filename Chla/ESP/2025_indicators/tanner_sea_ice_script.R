@@ -17,7 +17,7 @@ con<-DBI::dbConnect(jdbcDriver, server,
 
 query <- paste0("select read_date, avg(sea_ice_fraction) mean_ice from afsc.erddap_crw_sst a
 left join afsc.erddap_crw_sst_spatial_lookup b on a.crw_id = b.id
-where b.bsierp_id in (3,4,5,6,8)
+where b.bsierp_id in (4,5,6,8)
 group by read_date")
 
 dbGetQuery(con, query)  %>%
