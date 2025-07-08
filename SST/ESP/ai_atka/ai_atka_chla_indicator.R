@@ -65,3 +65,8 @@ ggplot()+
   ggtitle("AI Atka area AMJ proportion of data available")+
   theme_bw()
 ggsave("ai_atka/atka_area_amj_chla_coverage.PNG")
+
+# save 
+amj_meanchla %>%
+  mutate(indicator_name="Atka_amj_chla") %>%
+  write.csv("ai_atka/atka_amj_chla.csv", row.names=F)

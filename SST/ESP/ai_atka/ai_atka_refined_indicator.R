@@ -78,7 +78,7 @@ sst_lkp <- dbFetch(dbSendQuery(con, "select * from afsc.erddap_crw_sst_spatial_l
 # convert to spatial object
 sst_lkp <- sst_lkp %>%
   st_as_sf(coords=c("LONGITUDE","LATITUDE"), crs=4326) %>%
-  st_transform(crs=3338)+
+  st_transform(crs=3338)
   
 
 
@@ -104,7 +104,7 @@ sst_atka_lkp <- sst_lkp %>%
   data.frame() %>%
   dplyr::select(ID, DEPTH, AI_ATKA)
 
-dbWriteTable(con, "SST_ATKA_AREAS", sst_atka_lkp)
+dbWriteTable(con, "SST_ATKA_AREAS", sst_atka_lkp, overwrite=TRUE)
 
 dbGetQuery(con, "select * from SST_ATKA_AREAS")
 
@@ -135,9 +135,10 @@ ggsave("ai_atka/atka_area_amj_sst.PNG")
 
 
 # calculare fall indicator
+# Aug 15-Nov 15
 fall_meansst <- atka_sst %>%
   mutate(day=yday(READ_DATE)) %>%
-  filter(day >185 & day < 289) %>%
+  filter(day >=227 & day <= 319) %>%
   group_by(YEAR, AI_ATKA) %>%
   summarize(sst_mean=mean(TEMP),
             sst_sd=sd(TEMP))
@@ -145,7 +146,18 @@ ggplot()+
   geom_line(data=fall_meansst, aes(x=YEAR, y=sst_mean, color=AI_ATKA), size=2)+
   geom_line(data=fall_meansst, aes(x=YEAR, y=sst_mean-sst_sd, color=AI_ATKA), lty=2)+
   geom_line(data=fall_meansst, aes(x=YEAR, y=sst_mean+sst_sd, color=AI_ATKA), lty=2)+
-  ggtitle("AI Atka area Jul 15 - Oct 15 mean SST")+
+  ggtitle("AI Atka area Aug 15 - Nov 15 mean SST")+
   ylim(0,11)+
   theme_bw()
 ggsave("ai_atka/atka_area_fall_sst.PNG")
+
+# save SST data
+amj_meansst %>%
+  rename_with(tolower) %>%
+  mutate(indicator_name="Atka_amj_sst") %>%
+  write.csv("ai_atka/atka_amj_sst.csv", row.names=F)
+
+fall_meansst %>%
+  rename_with(tolower) %>%
+  mutate(indicator_name="Atka_fall_sst") %>%
+  write.csv("ai_atka/atka_fall_sst.csv", row.names=F)
