@@ -170,7 +170,7 @@ create_akfin_table(con, occ_grid, "OCCCI_SPATIAL_LOOKUP", meta)
 trim_chl<-function(file) {
   tidync(file) %>% 
     hyper_tibble()%>% 
-    mutate(date=as_datetime(time),
+    mutate(read_date=time,
            latitude=round(as.numeric(latitude),4),
            longitude=round(as.numeric(longitude),4),
            chlorophyll=round(chlor_a,3)) %>%
@@ -178,7 +178,7 @@ trim_chl<-function(file) {
                  rename_with(tolower) %>%
                  dplyr::select(longitude, latitude, occci_id), 
                 by=c("longitude"="longitude", "latitude"="latitude")) %>%
-    dplyr::select(date, occci_id, chlorophyll)
+    dplyr::select(occci_id, read_date,  chlorophyll)
   
 }
 
@@ -186,4 +186,17 @@ oc1998 <- trim_chl("occci/occci_1998.nc")
 
 meta<-generate_metadata(oc1998, "OCCCI_CHLA")
 create_akfin_table(con, oc1998, "OCCCI_CHLA", meta)
-# function to load .nc data by year, 
+# Make sure that update works
+oc1999 <- trim_chl("occci/occci_1999.nc")
+update_akfin_table(con, oc1999, "OCCCI_CHLA", overwrite=FALSE)
+
+
+# apply accross all years
+myyears <- 2000:2024
+lapply(myyears, FUN=function(x) {
+  file_name <- paste0("occci/occci_",x,".nc")
+  oc_data <- trim_chl(file_name)
+  update_akfin_table(con, oc_data, "OCCCI_CHLA", overwrite=FALSE)})
+
+
+dbDisconnect(con)
