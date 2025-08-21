@@ -5,6 +5,7 @@ library(RJDBC)
 library(keyring)
 library(dplyr)
 library(akfinupload)
+pak::pkg_install("MattCallahan-NOAA/akfinupload")
 
 jdbcDriver <- RJDBC::JDBC(driverClass="oracle.jdbc.OracleDriver",
                           classPath=system.file("driver", "ojdbc8.jar", package = "akfinupload") )
