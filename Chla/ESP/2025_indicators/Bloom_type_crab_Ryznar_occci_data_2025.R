@@ -137,7 +137,7 @@ bloomtype_compare_shade<-ggplot() +
   facet_wrap(.~north_south,ncol=1)
 
 
-png(filename="Chla/ESP/2025_indicators/OCCCI_bloomtype_timeseriesESP_crab_middle_outer_shaded.png",width = 1600, height = 1200,res=120)
+png(filename="Chla/ESP/2025_indicators/OCCCI_bloomtiming_timeseriesESP_crab_middle_outer_shaded.png",width = 1600, height = 1200,res=120)
 plot(bloomtype_compare_shade)
 dev.off()
 
@@ -163,7 +163,7 @@ bloomtype_compare<-ggplot() +
 
 
 
-png(filename="Chla/ESP/2025_indicators/OCCCI_bloomtype_timeseriesESP_crab_middle_outer.png",width = 1600, height = 1200,res=120)
+png(filename="Chla/ESP/2025_indicators/OCCCI_bloomtiming_timeseriesESP_crab_middle_outer.png",width = 1600, height = 1200,res=120)
 plot(bloomtype_compare)
 dev.off()
 
