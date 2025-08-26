@@ -10,6 +10,7 @@ library(forecast)
 
 p <- readRDS("inter_jens_datafiles/globcolour_24augSQL.RDS")
 
+table(p$bsierp_id)
 
 #p<-readRDS('inter_jens_datafiles/dummy2023_grid_chla_forESR_prep.RDS')
 head(p)

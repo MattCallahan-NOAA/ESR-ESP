@@ -10,10 +10,22 @@ library(forecast)
 
 p <- readRDS("inter_jens_datafiles/occci_25augSQL.RDS")
 
-
+#table(p$bsierp_id,p$jens_grid)
 #p<-readRDS('inter_jens_datafiles/dummy2023_grid_chla_forESR_prep.RDS')
 head(p)
 tail(p)
+str(p)
+
+
+p$jens_grid<-as.character(p$jens_grid)
+p$bsierp_id<-as.character(p$bsierp_id)
+
+# ch<-p[p$jens_grid==132,]
+# 
+# pold <- readRDS("inter_jens_datafiles/globcolour_24augSQL.RDS")
+# 
+# chold<-pold[pold$jens_grid==132,]
+
 
 
 p$month=month(p$read_date)
@@ -21,7 +33,8 @@ p$year=year(p$read_date)
 p$doy=yday(p$read_date)
 
 
-table(p$bsierp_id,p$year)
+table(p$bsierp_id)
+table(pold$bsierp_id)
 
 head(p)
 
