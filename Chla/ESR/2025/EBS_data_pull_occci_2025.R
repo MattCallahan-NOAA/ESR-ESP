@@ -41,7 +41,7 @@ and b.ecosystem = 'Eastern Bering Sea'
 and b.depth>(-200)
 and b.depth<(-10)
 and b.jens_grid>=0
-group by read_date, jens_grid "))%>%
+group by read_date, jens_grid"))%>%
   rename_with(tolower)
 
 head(ice)
