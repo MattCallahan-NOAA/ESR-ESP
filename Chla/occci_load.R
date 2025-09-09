@@ -211,3 +211,33 @@ lapply(myyears, FUN=function(x) {
 
 dbDisconnect(con)
 
+#### 2025 update
+myyear <- 2025
+for(i in myyear){
+  file_name <- paste0("occci/occci_",i,".nc")
+  download.file(url = paste0("https://coastwatch.pfeg.noaa.gov/erddap/griddap/pmlEsaCCI60OceanColor8Day_Lon0360.nc?chlor_a%5B(",i,"-01-01T00:00:00Z):1:(",i,"-06-26T00:00:00Z)%5D%5B(69):1:(47)%5D%5B(167):1:(230)%5D"),
+                method = "libcurl", mode="wb",destfile = file_name)
+}    
+
+
+# run the same process with 2025 as before
+oc2025 <- trim_chl("occci/occci_2025.nc")
+
+
+# ensure we're not uploading duplicate data
+min(oc2025$read_date)
+dbGetQuery(con, "SELECT MAX(READ_DATE) AS MAX_DATE FROM OCCCI_CHLA")
+
+# Huh both datasets have a 2025-01-01.
+db0101<- dbGetQuery(con, "SELECT * from OCCCI_CHLA where read_date = '2025-01-01'") %>%
+  rename_with(tolower) %>%
+  mutate(occci_id = as.numeric(occci_id),
+         chlorophyll = as.numeric(chlorophyll))
+oc0101 <- oc2025 %>% filter(read_date == "2025-01-01") 
+setdiff(db0101, oc0101)
+
+# since they're the same we'll filter it out from the data to upload
+oc2025 <- oc2025 %>% filter(read_date != "2025-01-01")
+
+# upload
+update_akfin_table(con, oc2025, "OCCCI_CHLA", overwrite=FALSE)
