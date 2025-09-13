@@ -311,7 +311,7 @@ annualevents %>%
   ylab("Number of Marine Heatwave Days") +
   #theme_bw() + 
   theme(plot.margin=unit(c(0.15,0.25,0.05,0),"cm"),
-        legend.position = c(0.15,0.85),
+        legend.position = c(0.01,0.85),
         legend.text = element_text(size=9),
         panel.background = element_blank(),
         panel.grid = element_blank())
