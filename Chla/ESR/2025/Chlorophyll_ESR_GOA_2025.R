@@ -27,7 +27,7 @@ con_j <- dbConnect(jdbcDriver,
                    keyring::key_get("akfin_oracle_db", keyring::key_list("akfin_oracle_db")$username))
 
 #load data with depth, season, and region filters
-data<-dbGetQuery(con_j, "select round(avg(chlorophyll),2) meanchla, to_date(read_date,'YYYY-MM-DD')+4 mid_date, ecosystem_subarea
+data<-dbGetQuery(con_j, "select round(avg(chlorophyll),2) meanchla, count(*) n_observations, to_date(read_date,'YYYY-MM-DD')+4 mid_date, ecosystem_subarea
 from env_data.occci_chla a
 left join env_data.occci_spatial_lookup b on a.occci_id=b.occci_id
 where extract(month from to_date(read_date,'YYYY-MM-DD')+4) in (4, 5, 6)
@@ -255,7 +255,7 @@ data %>%
   group_by(ecosystem_subarea) %>% 
   summarise(peak_bloom=mean(mymax))
 
-#get values for 2024 at each of those dates
+#get values for 2025 at each of those dates
 data %>% 
   filter(doy%in%c(141,165) & year==current.year) %>% 
   group_by(ecosystem_subarea) %>% 
@@ -268,3 +268,59 @@ data%>%
   summarize(annual_meanchla=mean(meanchla))%>%
   print(n=Inf)
 
+overallmean<-data%>%
+  filter(month %in% (4:6))%>%
+  group_by(ecosystem_subarea)%>%
+  summarize(annual_meanchla=mean(meanchla))
+
+# plot
+png("ESR/2025/chla_timeseries.png",width=7,height=5,units="in",res=300)
+data%>%
+  filter(month %in% (4:6))%>%
+  group_by(year,ecosystem_subarea)%>%
+  summarize(annual_meanchla=mean(meanchla)) %>%
+  ggplot()+
+  geom_line(aes(x=year, y=annual_meanchla)) +
+  geom_hline(data=overallmean, aes(yintercept=annual_meanchla), lty=2)+
+  facet_wrap(~ecosystem_subarea)+
+  ylim(c(0,2.5))
+dev.off()
+
+# evaluate data coverage
+ncells<-dbGetQuery(con_j, "select count(*) n_cells, ecosystem_subarea
+from env_data.occci_spatial_lookup
+where ecosystem_area = ('Gulf of Alaska')
+and waters_cod = 'FED'
+and depth>(-200)
+and depth<(-10)
+                   group by ecosystem_subarea") %>%
+  rename_with(tolower)
+
+data <- data %>%
+  left_join(ncells, by="ecosystem_subarea") %>%
+  mutate(coverage=n_observations/n_cells)
+
+
+#plot overall
+data %>%
+  filter(month %in% (4:6))%>%
+  group_by(year,ecosystem_subarea)%>%
+  summarize(annual_coverage=mean(coverage)) %>%
+  ggplot()+
+  geom_line(aes(x=year, y=annual_coverage)) +
+  facet_wrap(~ecosystem_subarea)+
+  ylim(c(0,1))
+
+
+# plot current year coverage & peak
+png("ESR/2025/chla_coverage.png",width=7,height=5,units="in",res=300)
+data %>%
+  filter(month %in% (4:6) & year==current.year)%>%
+  ggplot()+
+  geom_line(aes(x=mid_date, y=coverage)) +
+  geom_line(aes(x=mid_date, y=meanchla), color="green") +
+  geom_hline(yintercept=1, color="gray", lty=2)+
+  facet_wrap(~ecosystem_subarea)+
+  ylim(c(0,3.5))+
+  ylab("coverage (black) and mean chla (green)")
+dev.off()
