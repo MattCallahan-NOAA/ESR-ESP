@@ -266,12 +266,25 @@ data%>%
   filter(month %in% (4:6))%>%
   group_by(year,ecosystem_subarea)%>%
   summarize(annual_meanchla=mean(meanchla))%>%
+  arrange(annual_meanchla)%>%
   print(n=Inf)
 
 overallmean<-data%>%
   filter(month %in% (4:6))%>%
   group_by(ecosystem_subarea)%>%
-  summarize(annual_meanchla=mean(meanchla))
+  summarize(overall_meanchla=mean(meanchla))
+
+# and the sd
+data%>%
+  filter(month %in% (4:6))%>%
+  group_by(year,ecosystem_subarea)%>%
+  summarize(annual_meanchla=mean(meanchla))%>%
+  group_by(ecosystem_subarea) %>%
+  summarize(overall_meanchla=mean(annual_meanchla),
+            stdev = sd(annual_meanchla))
+
+
+
 
 # plot
 png("ESR/2025/chla_timeseries.png",width=7,height=5,units="in",res=300)
@@ -308,8 +321,20 @@ data %>%
   summarize(annual_coverage=mean(coverage)) %>%
   ggplot()+
   geom_line(aes(x=year, y=annual_coverage)) +
+  geom_text(aes(x=year, y=annual_coverage, label=round(annual_coverage,2))) +
   facet_wrap(~ecosystem_subarea)+
   ylim(c(0,1))
+
+data %>%
+  filter(month %in% (4:6) & year==current.year)%>%
+  ggplot()+
+  geom_line(aes(x=mid_date, y=coverage)) +
+  geom_line(aes(x=mid_date, y=meanchla), color="green") +
+  geom_hline(yintercept=1, color="gray", lty=2)+
+  geom_text(aes(x=mid_date, y=coverage, label=round(coverage,2))) +
+  facet_wrap(~ecosystem_subarea)+
+  ylim(c(0,3.5))+
+  ylab("coverage (black) and mean chla (green)")
 
 
 # plot current year coverage & peak
