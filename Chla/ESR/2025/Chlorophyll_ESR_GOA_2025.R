@@ -255,6 +255,14 @@ data %>%
   group_by(ecosystem_subarea) %>% 
   summarise(peak_bloom=mean(mymax))
 
+# peak bloom each year
+data %>% 
+  filter(doy>=50 & doy<=180 & year< current.year) %>% 
+  group_by(ecosystem_subarea,year) %>% 
+  summarise(maxchla=max(meanchla))  %>%
+  group_by(ecosystem_subarea) %>%
+  summarise(maxchla=max(maxchla))
+
 #get values for 2025 at each of those dates
 data %>% 
   filter(doy%in%c(141,165) & year==current.year) %>% 
