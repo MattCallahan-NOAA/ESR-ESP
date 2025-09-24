@@ -160,6 +160,7 @@ saveRDS(ROMS, "EBS/Data/ROMS_bottom_temp_1985_2024_merged_ESR.RDS")
 #9/2/2022
 #10/5/2023
 #9/5/2024
+#9/24/2025 - crap I am late!
 #load packages
 library(tidyverse)
 library(lubridate)
@@ -268,11 +269,11 @@ mylegy <- 0.865
 #             minlat=min(latitude),
 #             maxlon=max(longitude),
 #             minlon=min(longitude))
-options(timeout=600)
-r.ak <- marmap::as.raster(getNOAA.bathy(lon1=lkp$minlon,lon2=lkp$maxlon,lat1=lkp$minlat,lat2=lkp$maxlat, resolution=0.25))
-
-ROMS<-readRDS("EBS/Data/ROMS_bottom_temp_1985_2024_merged_ESR.RDS")%>%
-  mutate(depth=round(raster::extract(r.ak,cbind(lon_rho,lat_rho),method="bilinear"),0))
+# options(timeout=600)
+# r.ak <- marmap::as.raster(getNOAA.bathy(lon1=lkp$minlon,lon2=lkp$maxlon,lat1=lkp$minlat,lat2=lkp$maxlat, resolution=0.25))
+# 
+# ROMS<-readRDS("EBS/Data/ROMS_bottom_temp_1985_2024_merged_ESR.RDS")%>%
+#   mutate(depth=round(raster::extract(r.ak,cbind(lon_rho,lat_rho),method="bilinear"),0))
 
 #Group by date
 # ROMSdata<-ROMS %>% 
@@ -351,7 +352,7 @@ ROMS<-readRDS("EBS/Data/ROMS_bottom_temp_1985_2024_merged_ESR.RDS")%>%
 #SSTdata2<-readRDS("EBS/Data/ESR_sst_depthbins.RDS")
 #need to query raw SST for new aggregation
 #connect to db
-con<- dbConnect(odbc::odbc(),dsn="AKFIN",uid=getPass (),pwd=getPass())
+#con<- dbConnect(odbc::odbc(),dsn="AKFIN",uid=getPass (),pwd=getPass())
 #download sst
 # SSTupdate<- dbFetch(
 #   dbSendQuery(con,"select read_date, crw_id, temp, ecosystem_sub, depth from AFSC.erddap_crw_sst sst
@@ -655,13 +656,15 @@ con<- dbConnect(odbc::odbc(),dsn="AKFIN",uid=getPass (),pwd=getPass())
 #   rename_with(tolower)%>%
 #   saveRDS("EBS/Data/sst_in_min_out_2023.RDS")
 
-sst_domains<-readRDS("EBS/Data/sst_in_min_out_2023.RDS")
-max(sst_domains$read_date)
+jdbcDriver <- RJDBC::JDBC(driverClass="oracle.jdbc.OracleDriver",
+                          classPath=system.file("driver", "ojdbc8.jar", package = "akfinupload") )
+
+con <- dbConnect(jdbcDriver, "jdbc:oracle:thin:@//tiger:2045/akfin.psmfc.org", keyring::key_list("akfin_oracle_db")$username, keyring::key_get("akfin_oracle_db", keyring::key_list("akfin_oracle_db")$username))
 
 
 start<-Sys.time()
-sst_domains_2024<-dbFetch(
-  dbSendQuery(con,"with lkp as 
+sst_domains_2025<-
+  dbGetQuery(con,"with lkp as 
 (select 
 id,
 case when depth between -50 and -10 then 'inner'
@@ -671,18 +674,19 @@ else null
 end as domain,
 ecosystem_sub
 from afsc.erddap_crw_sst_spatial_lookup a
-where depth < -10 and depth > -200
+where depth <= -10 and depth >= -200
 and ecosystem = 'Eastern Bering Sea'
 ),
 sst as 
 (select crw_id, read_date, temp
 from afsc.erddap_crw_sst
-where read_date > to_date('03 oct 2023 12:00:00', 'dd mon yyyy hh:mi:ss'))
+--where read_date > to_date('03 oct 2023 12:00:00', 'dd mon yyyy hh:mi:ss')
+)
 select ecosystem_sub, domain, read_date, round(avg(temp), 2) meansst
 from lkp
 left join sst
 on lkp.id = sst.crw_id
-group by ecosystem_sub, domain, read_date")) %>%
+group by ecosystem_sub, domain, read_date") %>%
   rename_with(tolower)
 end<-Sys.time()
 end-start
@@ -692,9 +696,9 @@ min(sst_domains_2024$read_date)
 sst_domains <- sst_domains %>%
   bind_rows(sst_domains_2024)
 
-saveRDS(sst_domains, "EBS/Data/sst_in_min_out_2024.RDS")
+saveRDS(sst_domains_2025, "EBS/Data/sst_domains_2025.RDS")
 
-sst_domains <- readRDS("EBS/Data/sst_in_min_out_2024.RDS")
+sst_domains <- readRDS("EBS/Data/sst_domains_2025.RDS")
 #update 2024
 #prepare data for plotting
 sst_domains<-sst_domains%>%
@@ -710,6 +714,16 @@ sst_domains<-sst_domains%>%
 
 sst_domains$domain<-factor(sst_domains$domain, c("outer", "middle", "inner"))
 
+# define year
+current.year<-max(sst_domains$year)
+last.year <- current.year-1
+sst_start_year <- 1985
+mom6_start_year <- 1993
+mean.years.sst <- sst_start_year:last.year
+mean.lab.sst <- paste0("Mean ",sst_start_year,"-",last.year)
+mean.years.mom6 <- mom6_start_year:last.year
+mean.lab.mom6 <- paste0("Mean ",mom6_start_year,"-",last.year)
+
 #plot
 pb4 <- ggplot() +
 
@@ -718,7 +732,7 @@ pb4 <- ggplot() +
   geom_line(data=sst_domains %>% filter(year2==last.year), # The previous year
             aes(newdate,meansst,color='last.year.color'),size=0.75) +
   geom_line(data=sst_domains %>%
-              filter(year%in%mean.years) %>% # The mean from 1986-2015
+              filter(year%in% mean.years.sst) %>% # The mean from 1986-2015
               #group_by(eco2,newdate) %>%
                group_by(eco_short, domain,newdate) %>%
               summarise(meantemp=mean(meansst,na.rm=TRUE)),
@@ -730,7 +744,7 @@ pb4 <- ggplot() +
   scale_color_manual(name="",
                      breaks=c('current.year.color','last.year.color','mygrey','mean.color'),
                      values=c('current.year.color'=current.year.color,'last.year.color'=last.year.color,'mygrey'=SeagrassGreen4,'mean.color'=mean.color),
-                     labels=c(current.year,last.year,paste0('1986-',last.year-1),mean.lab)) +
+                     labels=c(current.year,last.year,paste0('1986-',last.year-1),mean.lab.sst)) +
   scale_linetype_manual(values=c("solid","solid","solid","dashed")) +
   ylab("Sea Surface Temperature (°C)") +
   ylim(c(-2,13))+
@@ -756,50 +770,60 @@ pb4
 # dev.off()
 
 
-#ROMS
-ROMSdata3<-ROMS %>% 
-  filter(between(depth,-200,-10)) %>% 
-  mutate(domain=ifelse(depth<(-100),"outer", ifelse(depth< -50, "middle", "inner")),
-         eco_short=ifelse(Ecosystem_Subarea=="Northern Bering Sea", "NBS", "SEBS"),
-         eco2=paste(eco_short, domain)) %>% 
-  group_by(eco_short,domain,date) %>% 
-  summarize(temp=mean(temp))%>%
-  complete(date = seq.Date(min(date), max(date), by="day"))%>%
-  fill(temp, eco_short, domain)%>%
-  mutate(year=year(date),
-         month=month(date),
-         week=week(date),
+# #ROMS
+# ROMSdata3<-ROMS %>% 
+#   filter(between(depth,-200,-10)) %>% 
+#   mutate(domain=ifelse(depth<(-100),"outer", ifelse(depth< -50, "middle", "inner")),
+#          eco_short=ifelse(Ecosystem_Subarea=="Northern Bering Sea", "NBS", "SEBS"),
+#          eco2=paste(eco_short, domain)) %>% 
+#   group_by(eco_short,domain,date) %>% 
+#   summarize(temp=mean(temp))%>%
+#   complete(date = seq.Date(min(date), max(date), by="day"))%>%
+#   fill(temp, eco_short, domain)%>%
+#   mutate(year=year(date),
+#          month=month(date),
+#          week=week(date),
+#          day=day(date),
+#          newdate=as.Date(ifelse(month>=9,as.character(as.Date(paste("1999",month,day,sep="-"),format="%Y-%m-%d")),#  Create a dummy year so that each year can more easily be overlain
+#                                 as.character(as.Date(paste("2000",month,day,sep="-"),format="%Y-%m-%d"))),format("%Y-%m-%d")),
+#          year2=ifelse(month>=9,year+1,year))
+# 
+# ROMSdata3$domain <- factor(ROMSdata3$domain, c("outer", "middle", "inner"))
+
+mom6<-readRDS("EBS/Data/MOM6/domain_averages.RDS") %>%
+  mutate(eco_short=ifelse(area_name=="Northern Bering Sea", "NBS", "SEBS"),
+         eco2=paste(eco_short, domain),
          day=day(date),
          newdate=as.Date(ifelse(month>=9,as.character(as.Date(paste("1999",month,day,sep="-"),format="%Y-%m-%d")),#  Create a dummy year so that each year can more easily be overlain
-                                as.character(as.Date(paste("2000",month,day,sep="-"),format="%Y-%m-%d"))),format("%Y-%m-%d")),
-         year2=ifelse(month>=9,year+1,year))
+                                                                as.character(as.Date(paste("2000",month,day,sep="-"),format="%Y-%m-%d"))),format("%Y-%m-%d")),
+                                          year2=ifelse(month>=9,year+1,year))
 
-ROMSdata3$domain <- factor(ROMSdata3$domain, c("outer", "middle", "inner"))
+mom6$domain <- factor(mom6$domain, c("outer", "middle", "inner"))
 
 pb5<-ggplot() +
-  geom_line(data=ROMSdata3 %>% filter(year2<last.year), # Older years are grey lines.
-            aes(newdate,temp,group=factor(year2),col='mygrey'),size=0.3) +
-  geom_line(data=ROMSdata3 %>% filter(year2==last.year), # The previous year
-            aes(newdate,temp,color='last.year.color'),size=1) +
-  geom_line(data=ROMSdata3 %>% 
-              filter(year2%in%mean.years) %>% # The mean from 1986-2015
+  geom_line(data=mom6 %>% filter(year2<last.year), # Older years are grey lines.
+            aes(newdate,mean_bt,group=factor(year2),col='mygrey'),size=0.3) +
+  geom_line(data=mom6 %>% filter(year2==last.year), # The previous year
+            aes(newdate,mean_bt,color='last.year.color'),size=1) +
+  geom_line(data=mom6 %>% 
+              filter(year2%in%mean.years.mom6) %>% # The mean from 1986-2015
               #group_by(eco2,newdate) %>% 
               group_by(eco_short, domain,newdate) %>% 
-              summarise(meantemp=mean(temp,na.rm=TRUE)),
+              summarise(meantemp=mean(mean_bt,na.rm=TRUE)),
             aes(newdate,meantemp, col='mean.color'), size=1,linetype="solid") +
-  geom_line(data=ROMSdata3 %>% filter(year2==current.year), # the current year
-            aes(newdate,temp,group=factor(year2),color='current.year.color'),size=0.75) +
+  geom_line(data=mom6 %>% filter(year2==current.year), # the current year
+            aes(newdate,mean_bt,group=factor(year2),color='current.year.color'),size=0.75) +
   #facet_wrap(~eco2,ncol=1) +
   facet_grid(rows=vars(eco_short), cols=vars(domain)) +
   scale_color_manual(name="",
                      breaks=c('current.year.color','last.year.color','mygrey','mean.color'),
                      values=c('current.year.color'=current.year.color,'last.year.color'=last.year.color,'mygrey'=SeagrassGreen4,'mean.color'=mean.color),
-                     labels=c(current.year,last.year,paste0('1986-',last.year-1),mean.lab)) +
+                     labels=c(current.year,last.year,paste0(mom6_start_year,"-",last.year-1),mean.lab.mom6)) +
   scale_linetype_manual(values=c("solid","solid","solid","dashed")) +
   #scale_y_continuous(labels=scaleFUN)+
   ylim(c(-2,13))+
   scale_x_date(limits=c(as_date("1999-09-01"),as_date("2000-08-31")),date_breaks="1 month",date_labels = "%b",expand=c(0.01,0)) +
-  ylab("ROMS Bottom Temperature (°C)") +
+  ylab("MOM6 Bottom Temperature (°C)") +
   #xlab("Week") +
   theme(legend.position=c(0.08,0.9),
         legend.text = element_text(size=15,family="sans"),
@@ -820,7 +844,7 @@ pb5<-ggplot() +
 pb5
 
 pb6<-plot_grid(pb4,pb5,ncol=1)
-png("EBS/2024/hottopic_sst_bt_inmidout.png", height=24, width=30, units="cm", res=300)
+png("EBS/2025/hottopic_sst_bt_inmidout.png", height=24, width=30, units="cm", res=300)
 pb6
 dev.off()
 
