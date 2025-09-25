@@ -84,7 +84,7 @@ plotdat %>%
         legend.title = element_text(size=12,family="sans")) +  xlab("Year") + 
   ylab("Chlorophyll-a [ug/L]") + 
   scale_x_continuous(expand = c(0.02,0.0)) + # Specify a boundary and expansion to set bars on bottom black line
-  scale_y_continuous(limits=c(0,5.5),expand = c(0,0.0)) # Specify a boundary and expansion to set bars on bottom black line
+  scale_y_continuous(limits=c(0,2.2),expand = c(0,0.0)) # Specify a boundary and expansion to set bars on bottom black line
 dev.off()
 
 
