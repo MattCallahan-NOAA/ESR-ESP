@@ -248,6 +248,7 @@ data %>%
   group_by(ecosystem_subarea) %>% 
   summarise(peak_bloom=mean(mymax))
 
+# Peak bloom for all years
 data %>% 
   filter(doy>=50 & doy<=180 & year< current.year) %>% 
   group_by(ecosystem_subarea,year) %>% 
@@ -269,13 +270,16 @@ data %>%
   group_by(ecosystem_subarea) %>% 
   mutate(mymax=doy[meanchla==max(meanchla)][1])
 
-# get the mean chla for all years
+# get the mean chla and peak bloom for all years
 data%>%
   filter(month %in% (4:6))%>%
-  group_by(year,ecosystem_subarea)%>%
-  summarize(annual_meanchla=mean(meanchla))%>%
-  arrange(annual_meanchla)%>%
-  print(n=Inf)
+  group_by(ecosystem_subarea, year)%>%
+  summarize(amj_meanchla=mean(meanchla),
+            peak_bloom_doy=doy[meanchla==max(meanchla)][1])%>%
+  #arrange(annual_meanchla)%>%
+  print(n=Inf) %>%
+  # save csv
+  write.csv("ESR/2025/occci_conc_peak.csv",row.names=FALSE)
 
 overallmean<-data%>%
   filter(month %in% (4:6))%>%
