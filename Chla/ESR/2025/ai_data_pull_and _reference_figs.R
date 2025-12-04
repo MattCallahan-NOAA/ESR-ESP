@@ -22,7 +22,8 @@ options(java.parameters="-Xmx8g")
 jdbcDriver <- JDBC(driverClass="oracle.jdbc.OracleDriver", classPath="../../snippets/dbconnect/java/ojdbc8.jar")
 
 con_j <- dbConnect(jdbcDriver, 
-                   "jdbc:oracle:thin:@//tiger:2045/akfin.psmfc.org", 
+                   #"jdbc:oracle:thin:@//tiger:2045/akfin.psmfc.org", 
+                   "jdbc:oracle:thin:@akfin",
                    key_list("akfin_oracle_db")$username, 
                    keyring::key_get("akfin_oracle_db", keyring::key_list("akfin_oracle_db")$username))
 
@@ -46,6 +47,30 @@ end-start
 
 write.csv(data, "data/ai_occci_2025.csv", row.names=FALSE)
 
+start<-Sys.time()
+fall<-dbFetch(dbSendQuery(con_j, paste0("select round(chlorophyll,2) chla, 
+                                      to_date(read_date,'YYYY-MM-DD')+4 mid_date, 
+                                      latitude,
+                                      longitude,
+                                      ecosystem_subarea, 
+                                      depth,
+                                      waters_cod state_fed,
+                                      stat_area
+                                      from env_data.occci_chla a
+                                      left join env_data.occci_spatial_lookup b on a.occci_id=b.occci_id
+where extract(month from to_date(read_date,'YYYY-MM-DD')+4) in (8, 9, 10)
+and ecosystem_area = ('Aleutian Islands')")))%>%
+  rename_with(tolower)
+end<-Sys.time()
+end-start
+
+
+fall <- fall %>%
+  mutate(year=year(mid_date))
+
+write.csv(fall, "data/ai_occci_fall_2025.csv", row.names=FALSE)
+
+# comparison for Jane
 #load data with depth, season, and region filters
 data<-dbGetQuery(con_j, "select round(avg(chlorophyll),2) meanchla, count(*) n_observations, to_date(read_date,'YYYY-MM-DD')+4 mid_date, ecosystem_subarea
 from env_data.occci_chla a
