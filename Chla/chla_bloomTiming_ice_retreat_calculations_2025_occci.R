@@ -34,7 +34,6 @@ p$doy=yday(p$read_date)
 
 
 table(p$bsierp_id)
-table(pold$bsierp_id)
 
 head(p)
 
@@ -106,7 +105,7 @@ head(timing_peak_all_log8)
 tail(timing_peak_all_log8)
 
 
-saveRDS(timing_peak_all_log8,file='inter_jens_datafiles/bloomTimingOCCCI_1998_2024.RDS')
+saveRDS(timing_peak_all_log8,file='inter_jens_datafiles/bloomTimingOCCCI_1998_2025.RDS')
 
 # plot 2023 here- just checking that it worked
 
