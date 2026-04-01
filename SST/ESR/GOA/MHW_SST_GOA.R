@@ -299,6 +299,15 @@ annualevents %>%
   theme(plot.margin=unit(c(0.15,0.25,0.05,0),"cm"),
         legend.position = c(0.1,0.85))
 dev.off()
+
+# figure 3 data for Tom
+annualevents %>% 
+  gather(Period,Duration,-c(year2,region)) %>% 
+  data.frame %>% 
+  mutate(Period=factor(Period,c("Summer","Fall","Winter","Spring")),
+         region=factor(region, c("Western Gulf of Alaska", "Eastern Gulf of Alaska"))
+  ) %>% 
+  write.csv("GOA/Data/mhw_days_goa.csv", row.names = F)
 #--------------------------------------------------------------------------------------------------------------------------
 
 #Figure of proportion mhw
