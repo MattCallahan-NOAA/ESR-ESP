@@ -32,7 +32,7 @@ mytheme <- theme(strip.text = element_text(size=10,color="white",family="sans",f
                  legend.key.size = unit(1,"line"))
 
 
-data <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Western%20Aleutians,Central%20Aleutians,Eastern%20Aleutians&start_date=19850101&end_date=20250909'), type = "application/json") %>% 
+data <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Western%20Aleutians,Central%20Aleutians,Eastern%20Aleutians&start_date=19850101&end_date=20260513'), type = "application/json") %>% 
   bind_rows %>% 
   mutate(date=as_date(READ_DATE)) %>% 
   data.frame %>% 
@@ -151,21 +151,21 @@ dev.off()
 #---------------------------------------------------------------------------------------------
 
 #  Create figure that shows MHW status
-# mhw <- (detect_event(ts2clm((data) %>%
-#                               filter(esr_region=="Western Aleutians") %>% 
-#                               rename(t=read_date,temp=meansst) %>% 
-#                               arrange(t), climatologyPeriod = c(climatology_start_date, climatology_end_date))))$clim %>% # uses 1986-2015 year2 baseline
-#   mutate(region="Western Aleutians") %>% 
-#   bind_rows((detect_event(ts2clm((data) %>%
-#                                    filter(esr_region=="Eastern Aleutians") %>% 
-#                                    rename(t=read_date,temp=meansst) %>% 
-#                                    arrange(t), climatologyPeriod = c(climatology_start_date, climatology_end_date))))$clim %>% 
-#               mutate(region="Eastern Aleutians")) %>% 
-#   bind_rows((detect_event(ts2clm((data) %>%
-#                                    filter(esr_region=="Central Aleutians") %>% 
-#                                    rename(t=read_date,temp=meansst) %>% 
-#                                    arrange(t), climatologyPeriod = c(climatology_start_date, climatology_end_date))))$clim %>% 
-#               mutate(region="Central Aleutians"))
+mhw <- (detect_event(ts2clm((data) %>%
+                              filter(esr_region=="Western Aleutians") %>%
+                              rename(t=read_date,temp=meansst) %>%
+                              arrange(t), climatologyPeriod = c(climatology_start_date, climatology_end_date))))$clim %>% # uses 1986-2015 year2 baseline
+  mutate(region="Western Aleutians") %>%
+  bind_rows((detect_event(ts2clm((data) %>%
+                                   filter(esr_region=="Eastern Aleutians") %>%
+                                   rename(t=read_date,temp=meansst) %>%
+                                   arrange(t), climatologyPeriod = c(climatology_start_date, climatology_end_date))))$clim %>%
+              mutate(region="Eastern Aleutians")) %>%
+  bind_rows((detect_event(ts2clm((data) %>%
+                                   filter(esr_region=="Central Aleutians") %>%
+                                   rename(t=read_date,temp=meansst) %>%
+                                   arrange(t), climatologyPeriod = c(climatology_start_date, climatology_end_date))))$clim %>%
+              mutate(region="Central Aleutians"))
 # 
 # clim_cat <- mhw %>%
 #   mutate(region=fct_relevel(region,"Western Aleutians")) %>% 
@@ -291,6 +291,16 @@ annualevents <- lapply(1:nrow(mhw_wai),function(x)data.frame(date=seq.Date(as.Da
   arrange(year2) %>% 
   filter(!is.na(region))
 
+# add annual departure from baseline
+annual_deviation<-mhw %>%
+  mutate(dev=temp-seas,
+         year=year(t),
+         month=month(t),
+         year2=ifelse(month>=12,year+1,year)) %>%
+  group_by(region,year2) %>%
+  summarize(mean_dev=round(mean(dev),1)) %>%
+  mutate(region=factor(region,c("Western Aleutians","Central Aleutians","Eastern Aleutians")))
+
 png(paste0("AI/",current.year,"/Figure_4_MHW_days_season_updated_test.png"),width=6,height=3.375,units="in",res=300)
 annualevents %>% 
   gather(Period,Duration,-c(year2,region)) %>% 
@@ -317,7 +327,75 @@ annualevents %>%
         panel.grid = element_blank())
 dev.off()
 
+# Modified Figure 3 with annual deviations from the baseline
+png(paste0("AI/",current.year,"/Figure_4_MHW_days_season_updated_test.png"),width=6,height=3.375,units="in",res=300)
 
+annualevents %>% 
+  gather(Period, Duration, -c(year2, region)) %>% 
+  data.frame() %>% 
+  mutate(Period=factor(Period, c("Fall","Summer","Spring","Winter")),
+           region=factor(region,c("Western Aleutians","Central Aleutians","Eastern Aleutians"))) %>% 
+  ggplot() +
+  geom_bar(
+    aes(year2, Duration, fill = Period),
+    stat = "identity"
+  ) +
+  
+  # Small guide lines to make clear which label goes with which year
+  geom_segment(
+    data = annual_deviation,
+    aes(x = year2, xend = year2, y = -8, yend = 0),
+    inherit.aes = FALSE,
+    linewidth = 0.25
+  ) +
+  
+  
+  geom_text(
+    data = annual_deviation,
+    aes(x = year2, y = -18, label = mean_dev),
+    inherit.aes = FALSE,
+    size = 1.2,
+    angle = 90,
+    hjust = 0.5,
+    vjust = 0.5
+  ) +
+  
+  scale_fill_manual(
+    name = "",
+    labels = c("Summer", "Fall", "Winter", "Spring"),
+    values = c(OceansBlue2, Crustacean1, UrchinPurple1, WavesTeal1)
+  ) +
+  mytheme + 
+  facet_wrap(~region) + 
+  
+  scale_x_continuous(
+    expand = c(0, 0.5)
+  ) +
+  
+  # Negative lower limit creates space for labels under the bars
+  scale_y_continuous(
+    limits = c(-35, 370),
+    expand = c(0, 0)
+  ) +
+  
+  coord_cartesian(clip = "off") +
+  
+  xlab("Year") + 
+  ylab("Number of Marine Heatwave Days") +
+  
+  theme(
+    plot.margin = unit(c(0.15, 0.25, 0.35, 0), "cm"),
+    legend.position = c(0.1, 0.85)
+  )
+
+dev.off()
+
+
+# deviation from baseline
+annual_deviation %>%
+  filter(year2 >=2015) %>%
+  group_by(region) %>%
+  summarize(post_baseline_deviation=mean(mean_dev))
 
 
 #Figure of proportion mhw

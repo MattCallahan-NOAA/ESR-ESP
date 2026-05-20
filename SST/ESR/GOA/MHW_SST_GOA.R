@@ -37,7 +37,7 @@ mytheme <- theme(strip.text = element_text(size=10,color="white",family="sans",f
 #   detect_event(ts2clm(data %>% filter(Ecosystem_sub==region), climatologyPeriod = c("1986-01-01", "2015-12-31")))
 # }
 
-newdat <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Eastern%20Gulf%20of%20Alaska,Western%20Gulf%20of%20Alaska&start_date=19850101&end_date=20251231'), type = "application/json") %>% 
+newdat <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Eastern%20Gulf%20of%20Alaska,Western%20Gulf%20of%20Alaska&start_date=19850101&end_date=20260513'), type = "application/json") %>% 
   bind_rows %>% 
   mutate(date=as_date(READ_DATE)) %>% 
   data.frame %>% 
@@ -277,6 +277,16 @@ annualevents <- lapply(1:nrow(mhw_wgoa),function(x)data.frame(date=seq.Date(as.D
   arrange(year2) %>% 
   filter(!is.na(region))
 
+# add annual departure from baseline
+annual_deviation<-mhw %>%
+  mutate(dev=temp-seas,
+         year=year(t),
+         month=month(t),
+         year2=ifelse(month>=12,year+1,year)) %>%
+  group_by(region,year2) %>%
+  summarize(mean_dev=round(mean(dev),1)) %>%
+  mutate(region = factor(region, c("Western Gulf of Alaska", "Eastern Gulf of Alaska")))
+
 png(paste0("GOA/",current.year,"/Callahan_Figure3_MHW_days_season.png"),width=6,height=3.375,units="in",res=300)
 annualevents %>% 
   gather(Period,Duration,-c(year2,region)) %>% 
@@ -290,6 +300,7 @@ annualevents %>%
   scale_fill_manual(name="",labels=c("Summer","Fall","Winter","Spring"),values=c(OceansBlue2,Crustacean1,UrchinPurple1,WavesTeal1)) +
   #geom_bar(aes(year2,totaldays),stat="identity",fill=OceansBlue2) + 
   #geom_bar(aes(year2,winterdays),stat="identity",fill=Crustacean1) + 
+  geom_text(data=annual_deviation, mapping=aes(x=year2, y=330, label=mean_dev))+
   mytheme + 
   facet_wrap(~region) + 
   scale_x_continuous(expand=c(0,0.5)) +
@@ -300,6 +311,89 @@ annualevents %>%
         legend.position = c(0.1,0.85))
 dev.off()
 
+# Modified Figure 3 with annual deviations from the baseline
+png(
+  paste0("GOA/", current.year, "/Callahan_Figure3_MHW_days_season.png"),
+  width = 6, height = 3.375, units = "in", res = 300
+)
+
+annualevents %>% 
+  gather(Period, Duration, -c(year2, region)) %>% 
+  data.frame() %>% 
+  mutate(
+    Period = factor(Period, c("Summer", "Fall", "Winter", "Spring")),
+    region = factor(region, c("Western Gulf of Alaska", "Eastern Gulf of Alaska"))
+  ) %>% 
+  ggplot() +
+  geom_bar(
+    aes(year2, Duration, fill = Period),
+    stat = "identity"
+  ) +
+  
+  # Small guide lines to make clear which label goes with which year
+  geom_segment(
+    data = annual_deviation,
+    aes(x = year2, xend = year2, y = -8, yend = 0),
+    inherit.aes = FALSE,
+    linewidth = 0.25
+  ) +
+  
+  # Deviation labels below bars but above/near x-axis labels
+  # geom_text(
+  #   data = annual_deviation,
+  #   aes(x = year2, y = -18, label = mean_dev),
+  #   inherit.aes = FALSE,
+  #   size = 2.2,
+  #   angle = 90,
+  #   hjust = 0.5,
+  #   vjust = 0.5
+  # ) +
+  geom_segment(
+    data = annual_deviation,
+    aes(x = year2, xend = year2, y = -8, yend = 0),
+    inherit.aes = FALSE,
+    linewidth = 0.25
+  ) +
+  
+  geom_text(
+    data = annual_deviation,
+    aes(x = year2, y = -18, label = mean_dev),
+    inherit.aes = FALSE,
+    size = 1.8,
+    angle = 90,
+    hjust = 0.5,
+    vjust = 0.5
+  ) +
+  
+  scale_fill_manual(
+    name = "",
+    labels = c("Summer", "Fall", "Winter", "Spring"),
+    values = c(OceansBlue2, Crustacean1, UrchinPurple1, WavesTeal1)
+  ) +
+  mytheme + 
+  facet_wrap(~region) + 
+  
+  scale_x_continuous(
+    expand = c(0, 0.5)
+  ) +
+  
+  # Negative lower limit creates space for labels under the bars
+  scale_y_continuous(
+    limits = c(-35, 370),
+    expand = c(0, 0)
+  ) +
+  
+  coord_cartesian(clip = "off") +
+  
+  xlab("Year") + 
+  ylab("Number of Marine Heatwave Days") +
+  
+  theme(
+    plot.margin = unit(c(0.15, 0.25, 0.35, 0), "cm"),
+    legend.position = c(0.1, 0.85)
+  )
+
+dev.off()
 # figure 3 data for Tom
 annualevents %>% 
   gather(Period,Duration,-c(year2,region)) %>% 

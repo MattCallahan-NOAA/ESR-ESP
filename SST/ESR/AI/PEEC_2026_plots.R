@@ -9,7 +9,8 @@ library(heatwaveR)
 
 jdbcDriver <- RJDBC::JDBC(driverClass="oracle.jdbc.OracleDriver",
                           classPath=system.file("driver", "ojdbc8.jar", package = "akfinupload") )
-server<-"jdbc:oracle:thin:@akfin"
+#server<-"jdbc:oracle:thin:@akfin"
+server<-"jdbc:oracle:thin:@//tiger:2045/akfin.psmfc.org"
 
 con<-dbConnect(jdbcDriver, 
                server, 
@@ -29,16 +30,17 @@ from norpac.debriefed_haul_mv
 
 c25<-sum(ai_catch_depth$official_total_catch)
 
+png(paste0("AI/","2026","/PEEC_fishing_depth.png"),width=6,height=3.375,units="in",res=300)
 ggplot(ai_catch_depth%>%
          mutate(depth2=round(depth_m,-1))%>%
          group_by(depth2) %>%
          summarize(catch=sum(official_total_catch))%>%
          mutate(catch_prop_2025=catch/c25))+
   geom_line(aes(x=depth2, y=catch_prop_2025))+
-  ylab("Proportion of 2025 AI catch")+
+  ylab("Proportion of observed 2025 AI catch")+
   xlab("Depth (m)")+
   theme_bw()
-
+dev.off()
 # show depth distribution
 
 ai_pts<-dbGetQuery(con,
@@ -57,14 +59,18 @@ ai_pts<-ai_pts %>%
 
 ai_base<-get_base_layers(select.region="AI", set.crs=4326)
 
+png(paste0("AI/","2026","/PEEC_AI_depth.png"),width=6,height=3.375,units="in",res=300)
 ggplot()+
   geom_point(data=ai_pts , 
              aes(x=lon360, y=latitude, color=depth_range), size=0.2)+
   geom_sf(data=ai_base$akland %>%st_shift_longitude())+
-  #geom_sf(data=ai_base$bathymetry %>%filter(DEPTH_M==1000) %>%st_shift_longitude(), color="purple")+
   geom_sf(data=ai_base$bathymetry %>%filter(DEPTH_M==700) %>%st_shift_longitude(), color="darkblue")+
-  coord_sf(xlim=c(167, 197), ylim=c(50,57))+
+  coord_sf(xlim=c(167, 197), ylim=c(48,57))+
+  xlab("longitude")+
   theme_bw()
+dev.off()
+# Note that mhw per year figures were recalculated with anomaly added 
+
   
 # create time series 
 ai_ts<-dbGetQuery(con,
@@ -101,6 +107,28 @@ mylegy <- 0.865
 #  Specify NOAA logo position coordinates (top panel)
 mylogox <- 0.045
 mylogoy <- 0.285
+
+OceansBlue1='#0093D0'
+OceansBlue2='#0055A4' # rebecca dark blue
+CoralRed1='#FF4438'
+Crustacean1='#FF8300'
+SeagrassGreen1='#93D500'
+SeagrassGreen4='#D0D0D0' # This is just grey
+UrchinPurple1='#7F7FFF'
+WavesTeal1='#1ECAD3'
+redsnapper = "#D02C2F"
+
+mytheme <- theme(strip.text = element_text(size=10,color="white",family="sans",face="bold"),
+                 strip.background = element_rect(fill=OceansBlue2),
+                 axis.title = element_text(size=10,family="sans",color="black"),
+                 axis.text = element_text(size=10,family="sans",color="black"),
+                 panel.border=element_rect(colour="black",fill=NA,size=0.5),
+                 # panel.background = element_blank(),
+                 plot.margin=unit(c(0.65,0,0.65,0),"cm"),
+                 legend.position=c(0.6,0.7),
+                 legend.background = element_blank(),
+                 legend.key.size = unit(1,"line"))
+
 
 ####-------------------------------------------------------------####
 #Load Base data
@@ -300,11 +328,29 @@ pa2b <- ggdraw(pa2 +
                                                               ")\n Data are modeled satellite products and periodic discrepancies or gaps may exist across sensors and products.\n                                    Contact: matt.callahan@noaa.gov, Alaska Fisheries Science Center "),
                             
                             hjust=0.5, size=7,family="sans",fontface=1,color=OceansBlue2,lineheight=0.85) )
-pa3<-plot_grid(pa1,pa2b,ncol=1)
+pa3<-plot_grid(pa1,pa2,ncol=1)
+pa3
 
+png(paste0("AI/","2026","/PEEC_700m_app.png"), height=14.25, width=18, units="in", res=300)
+pa3
+dev.off()
 
 # MHW days
-data<-AIdata
+data<-ai_ts %>%
+  mutate(date=as_date(read_date)) %>% 
+  data.frame %>% 
+  dplyr::select(date,meansst,esr_region=ecosystem_sub) %>% 
+  mutate(doy=yday(date),
+         year=year(date),
+         month=month(date),
+         day=day(date),
+         newdate=as.Date(ifelse(month>=12,as.character(as.Date(paste("1999",month,day,sep="-"),format="%Y-%m-%d")),
+                                as.character(as.Date(paste("2000",month,day,sep="-"),format="%Y-%m-%d"))),format("%Y-%m-%d")),
+         year2=ifelse(month>=12,year+1,year),
+         esr_region=fct_relevel(esr_region,"Western Aleutians")) %>% 
+  rename(read_date=date) %>% 
+  arrange(read_date) 
+
 current.year <- max(data$year)
 last.year <- current.year-1
 climatology_start_year <- 1985
@@ -314,23 +360,24 @@ climatology_end_date <- "2014-12-31"
 mean.years <- climatology_start_year:climatology_end_year 
 mean.lab <- paste0("Mean ",climatology_start_year,"-",climatology_end_year)
 
+
 mhw_wai <- (detect_event(ts2clm((data) %>%
                                   filter(esr_region=="Western Aleutians") %>% 
-                                  rename(t=date,temp=meansst) %>% 
+                                  rename(t=read_date,temp=meansst) %>% 
                                   arrange(t), climatologyPeriod = c(climatology_start_date, climatology_end_date))))$event %>% 
   mutate(region="WesternAleutians") %>% 
   data.frame
 
 mhw_eai <- ((detect_event(ts2clm((data) %>%
                                    filter(esr_region=="Eastern Aleutians") %>% 
-                                   rename(t=date,temp=meansst) %>% 
+                                   rename(t=read_date,temp=meansst) %>% 
                                    arrange(t), climatologyPeriod = c(climatology_start_date, climatology_end_date))))$event %>% 
               mutate(region="Eastern Aleutians")) %>% 
   data.frame
 
 mhw_cai <- ((detect_event(ts2clm((data) %>%
                                    filter(esr_region=="Central Aleutians") %>% 
-                                   rename(t=date,temp=meansst) %>% 
+                                   rename(t=read_date,temp=meansst) %>% 
                                    arrange(t), climatologyPeriod = c(climatology_start_date, climatology_end_date))))$event %>% 
               mutate(region="Central Aleutians")) %>% 
   data.frame
@@ -359,17 +406,32 @@ annualevents <- lapply(1:nrow(mhw_wai),function(x)data.frame(date=seq.Date(as.Da
   arrange(year2) %>% 
   filter(!is.na(region))
 
-#  Load 508 compliant NOAA colors
-OceansBlue1='#0093D0'
-OceansBlue2='#0055A4' # rebecca dark blue
-CoralRed1='#FF4438'
-Crustacean1='#FF8300'
-SeagrassGreen1='#93D500'
-SeagrassGreen4='#D0D0D0' # This is just grey
-UrchinPurple1='#7F7FFF'
-WavesTeal1='#1ECAD3'
-redsnapper = "#D02C2F"
-
+# add annual departure from baseline
+mhw <- (detect_event(ts2clm((data) %>%
+                              filter(esr_region=="Western Aleutians") %>%
+                              rename(t=read_date,temp=meansst) %>%
+                              arrange(t), climatologyPeriod = c(climatology_start_date, climatology_end_date))))$clim %>% # uses 1986-2015 year2 baseline
+  mutate(region="Western Aleutians") %>%
+  bind_rows((detect_event(ts2clm((data) %>%
+                                   filter(esr_region=="Eastern Aleutians") %>%
+                                   rename(t=read_date,temp=meansst) %>%
+                                   arrange(t), climatologyPeriod = c(climatology_start_date, climatology_end_date))))$clim %>%
+              mutate(region="Eastern Aleutians")) %>%
+  bind_rows((detect_event(ts2clm((data) %>%
+                                   filter(esr_region=="Central Aleutians") %>%
+                                   rename(t=read_date,temp=meansst) %>%
+                                   arrange(t), climatologyPeriod = c(climatology_start_date, climatology_end_date))))$clim %>%
+              mutate(region="Central Aleutians"))
+# 
+annual_deviation<-mhw %>%
+  mutate(dev=temp-seas,
+         year=year(t),
+         month=month(t),
+         year2=ifelse(month>=12,year+1,year)) %>%
+  group_by(region,year2) %>%
+  summarize(mean_dev=round(mean(dev),1)) %>%
+  mutate(region=factor(region,c("Western Aleutians","Central Aleutians","Eastern Aleutians")))
+# Modified Figure 3 with annual deviations from the baseline
 mytheme <- theme(strip.text = element_text(size=10,color="white",family="sans",face="bold"),
                  strip.background = element_rect(fill=OceansBlue2),
                  axis.title = element_text(size=10,family="sans",color="black"),
@@ -380,38 +442,69 @@ mytheme <- theme(strip.text = element_text(size=10,color="white",family="sans",f
                  legend.position=c(0.6,0.7),
                  legend.background = element_blank(),
                  legend.key.size = unit(1,"line"))
+png(paste0("AI/",current.year,"/PEEC_700m_mhw_days.png"),width=6,height=3.375,units="in",res=300)
 
-
-#png(paste0("AI/",current.year,"/Figure_4_MHW_days_season_updated_test.png"),width=6,height=3.375,units="in",res=300)
 annualevents %>% 
-  gather(Period,Duration,-c(year2,region)) %>% 
-  data.frame %>% 
+  gather(Period, Duration, -c(year2, region)) %>% 
+  data.frame() %>% 
   mutate(Period=factor(Period, c("Fall","Summer","Spring","Winter")),
          region=factor(region,c("Western Aleutians","Central Aleutians","Eastern Aleutians"))) %>% 
-  #filter(Period!="totaldays") %>% 
   ggplot() +
-  geom_bar(aes(year2,Duration,fill=Period),stat="identity") + 
-  scale_fill_manual(name="",labels=c("Fall (Sep-Nov)","Summer (Jun-Aug)","Spring (Mar-May","Winter (Dec-Feb)"),values=c(OceansBlue2,Crustacean1,UrchinPurple1,WavesTeal1)) +
-  #geom_bar(aes(year2,totaldays),stat="identity",fill=OceansBlue2) + 
-  #geom_bar(aes(year2,winterdays),stat="identity",fill=Crustacean1) + 
+  geom_bar(
+    aes(year2, Duration, fill = Period),
+    stat = "identity"
+  ) +
+  
+  # Small guide lines to make clear which label goes with which year
+  geom_segment(
+    data = annual_deviation,
+    aes(x = year2, xend = year2, y = -8, yend = 0),
+    inherit.aes = FALSE,
+    linewidth = 0.25
+  ) +
+  
+  
+  geom_text(
+    data = annual_deviation,
+    aes(x = year2, y = -18, label = mean_dev),
+    inherit.aes = FALSE,
+    size = 1.2,
+    angle = 90,
+    hjust = 0.5,
+    vjust = 0.5
+  ) +
+  
+  scale_fill_manual(
+    name = "",
+    labels = c("Summer", "Fall", "Winter", "Spring"),
+    values = c(OceansBlue2, Crustacean1, UrchinPurple1, WavesTeal1)
+  ) +
   mytheme + 
   facet_wrap(~region) + 
-  scale_x_continuous(expand=c(0,0.5)) +
-  scale_y_continuous(limits=c(0,370),expand=c(0.0,0)) +
+  
+  scale_x_continuous(
+    expand = c(0, 0.5)
+  ) +
+  
+  # Negative lower limit creates space for labels under the bars
+  scale_y_continuous(
+    limits = c(-35, 370),
+    expand = c(0, 0)
+  ) +
+  
+  coord_cartesian(clip = "off") +
+  
   xlab("Year") + 
   ylab("Number of Marine Heatwave Days") +
-  #theme_bw() + 
-  theme(plot.margin=unit(c(0.15,0.25,0.05,0),"cm"),
-        legend.position = c(0.01,0.85),
-        legend.text = element_text(size=9),
-        panel.background = element_blank(),
-        panel.grid = element_blank())
-#dev.off()
+  
+  theme(
+    plot.margin = unit(c(0.15, 0.25, 0.35, 0), "cm"),
+    legend.position = c(0.1, 0.85)
+  )
 
+dev.off()
 
-ggplot(AIdata%>%filter(year>=2025))+geom_line(aes(x=read_date, y=meansst))+
-  facet_wrap(~ecosystem_sub)
-
-min((AIdata%>%filter(month==6 & ecosystem_sub=="Western Aleutians"))$meansst)
-AIdata %>%
-  filter(round(meansst,2)==2.10)
+annual_deviation %>%
+  filter(year2 >=2015) %>%
+  group_by(region) %>%
+  summarize(post_baseline_deviation=mean(mean_dev))
