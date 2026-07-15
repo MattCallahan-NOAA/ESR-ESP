@@ -10,14 +10,22 @@ library(gridExtra)
 library(RColorBrewer)
 library(viridis)
 
+# General note. You need to add additional years when updating to 2026
+
+
 # dummy file to create bsierp to super region designations (using last years file 2024). 
 
 bs24<-readRDS('inter_jens_datafiles/globcolour_24augSQL.RDS')
 head(bs24)
 
+# creating the super regions from the old file (this was a hack because the super regions were not in the occci data). So could be removed in future
 dummy_region<-bs24 %>% group_by(bsierp_id,bsierp_super_region) %>% summarize() 
 
 # 
+
+# data is created from the sql pull using the script "EBS_data_pull_occci_2025.R" in the 2025 folder.
+# and data is stored in "inter_jens_datafiles" which is gitignore.
+
 bs <- readRDS("inter_jens_datafiles/occci_25augSQL.RDS")
 head(bs)
 bs$bsierp_id<-as.character(bs$bsierp_id)
@@ -110,6 +118,12 @@ plot(fig2)
 dev.off()
 # rejoice (or actually move on to Fig 3 )#
 
+
+##
+##fig 3 - which I think we might not be making for the ESR anymore. But its still helpful to look at 
+##
+
+
 range(bs$doy)
 # for tile plot 
 super_tile<- bs %>% group_by(year,doy,bsierp_super_region) %>% filter(doy>55 & doy <302) %>% summarise(mean_chla = mean(meanchla,na.rm=TRUE))
@@ -161,11 +175,18 @@ dev.off()
 
 
 ###
-# Figure 4 timing plot #
+# Figure 4 bloom timing plot #
 ##
 ##
+
+# this data is created in a different chla script  "chla_bloomTiming_ice_retreat_calculations_2025_occci.R"
+# which is located in the Chla folder. That is takes data to calculate bloom timing - and stores those data 
+# in an internal folder "inter_jens_datafiles" (in gitignore)
+
+
 bl <- readRDS("inter_jens_datafiles/bloomTimingOCCCI_1998_2025.RDS")
 
+# again merging to include the regions 
 bl<-bl %>% full_join(dummy_region,by='bsierp_id')
 bl<-bl[complete.cases(bl$jens_grid),]
 
@@ -178,7 +199,7 @@ sum_bl_sub<-subset(sum_bl,bsierp_super_region %in% c("South inner shelf","South 
 head(sum_bl_sub)
 
 
-
+# these 2 jens grids are the ones near the M2 mooring. 
 m2_glob<- bl[bl$jens_grid %in% c(108,109), ]
 
 #plot(m2_glob$year, m2_glob$gap_sizeTS)
@@ -194,11 +215,16 @@ head(sat)
 sat$bsierp_super_region<-factor((as.character(sat$bsierp_super_region)), levels=c("South outer shelf","South middle shelf","South inner shelf",
                                                                                     "Offshelf","M2 mooring"))  
 
+# this is a step that is pulling bloom timing estimates from the M2 mooring - based on past papers 
+# the first file 1998-2011 estimates are from Sigler 2014 - "Spring and fall phytoplankton blooms in a productive subarctic ecosystem, the eastern Bering Sea, during 1995–2011"
+# 2005-2019 are from Nielsen 2024 - "Spring phytoplankton bloom phenology during recent climate warming on the Bering Sea shelf"
 
-sigler<-read.csv("~/Arctic_IERP_Eisner_2019/nb13_spatial_chla_bloom_ms_BeringSea/r_script_satellite_bloom/mooring_m2_m4_m5_m8_data_workup/Sigler_2014_timing_data_modified_version.csv",header=TRUE, dec=".",sep=",",na.strings="NA")
+
+sigler<-read.csv("Chla/ESR/mooring_bloom_estimates/Sigler_2014_timing_data_modified_version.csv",header=TRUE, dec=".",sep=",",na.strings="NA")
 sig_m2<-sigler[sigler$Moor=="M2",]
 
-load("~/Arctic_IERP_Eisner_2019/nb13_spatial_chla_bloom_ms_BeringSea/r_script_satellite_bloom/mooring_m2_m4_m5_m8_data_workup/timing_data_M2_mooring_peaks_30_dec2021.RData")
+# Additional data from Nielsen 
+load("Chla/ESR/mooring_bloom_estimates/timing_data_M2_mooring_peaks_30_dec2021.RData")
 mor_m2<-jnd_tbl_m2
 dummy_year<-data.frame(1998:2025)
 colnames(dummy_year)<-'year'
@@ -206,18 +232,19 @@ mor_m2<-merge(mor_m2,dummy_year,all=T,by='year')
 
 mor_m2$prim_hybrid<-mor_m2$primary_peak
 
+# in cases where estimates from sigler and nielsen are both present - Sigler is used (usually simialr)
+
 mor_m2$prim_hybrid[mor_m2$year==1998]<-sig_m2$peak_spring_bloom[sig_m2$Year==1998]
 mor_m2$prim_hybrid[mor_m2$year==1999]<-sig_m2$peak_spring_bloom[sig_m2$Year==1999]
 mor_m2$prim_hybrid[mor_m2$year==2000]<-sig_m2$peak_spring_bloom[sig_m2$Year==2000]
 mor_m2$prim_hybrid[mor_m2$year==2001]<-sig_m2$peak_spring_bloom[sig_m2$Year==2001]
 mor_m2$prim_hybrid[mor_m2$year==2002]<-sig_m2$peak_spring_bloom[sig_m2$Year==2002]
-
-
 mor_m2$prim_hybrid[mor_m2$year==2003]<-sig_m2$peak_spring_bloom[sig_m2$Year==2003]
 mor_m2$prim_hybrid[mor_m2$year==2004]<-sig_m2$peak_spring_bloom[sig_m2$Year==2004]
 mor_m2$prim_hybrid[mor_m2$year==2005]<-sig_m2$peak_spring_bloom[sig_m2$Year==2005]
 mor_m2$prim_hybrid[mor_m2$year==2010]<-sig_m2$peak_spring_bloom[sig_m2$Year==2010]
 mor_m2$prim_hybrid[mor_m2$year==2014]<-NA # adjustment done by looking at mooring data (highest near sat peak)
+
 mor_m2$prim_hybrid[mor_m2$year==2021]<-141 # adjustment done by looking at mooring data (highest near sat peak)
 
 head(mor_m2)  
@@ -234,6 +261,13 @@ mooring$bsierp_super_region<-factor((as.character(mooring$bsierp_super_region)),
                                                                                   "Offshelf","M2 mooring"))  
 
 mooring
+
+# WARNING here - when you add 2026 - you need to adjust the values of the rows for the hack code below! 
+
+
+# additional m2 mooring bloom timing estimates were done from the Profiling crawler which reports live for the year. 
+# we add those to eh M2 estimates and the south middle shelf estimates 
+
 # personal M2 mooring inspection - peak estimation 2023
 mooring$prim_hybrid[25]<-142 # day of year - based on Prawler data
 mooring$prim_hybrid[53]<-142 # day of year - based on Prawler data
@@ -243,7 +277,7 @@ mooring$prim_hybrid[53]<-142 # day of year - based on Prawler data
 mooring$prim_hybrid[27]<- 136 # day of year - based on Prawler data
 mooring$prim_hybrid[55]<-136 # day of year - based on Prawler data
 
-# setting 2025
+# setting 2025 - didn't hhave this so no 2025 estimate. Mabye we have it now? 
 mooring$prim_hybrid[28]#<- 136 # day of year - based on Prawler data
 mooring$prim_hybrid[56]#<-136 # day of year - based on Prawler data
 
@@ -261,8 +295,8 @@ jens_names_fig4 <- c("South outer shelf"  = "south outer",
                      "Offshelf"  = "off-shelf",
                      "M2 mooring" = "M2 mooring")
 
-windows(11,9)  
-ggplot(sat,aes(avg_peak, year)) + 
+
+fig4<- ggplot(sat,aes(avg_peak, year)) + 
   geom_vline(data= long_termavg, aes(xintercept=avg_peak), linetype="dashed", color = "black",size=1)+
   facet_wrap(bsierp_super_region~.,ncol=3,labeller =as_labeller(jens_names_fig4)) +
   xlim(70, 190)+
@@ -281,3 +315,12 @@ ggplot(sat,aes(avg_peak, year)) +
         axis.text.y=element_text(color="black"))+
   ylab("Year") + 
   xlab("Day of year")
+
+
+windows(11,9)
+fig4
+# 
+png(filename="Chla/ESR/2025/Fig4_satellite_Chla_ESR_EBS_bloomtiming.png",width = 1600, height = 1400,res=120)
+plot(fig4)
+dev.off()
+
