@@ -40,6 +40,44 @@ bs<-bs[complete.cases(bs$jens_grid),]
 table(bs$month,bs$year)
 #rm(bs24)
 
+
+## here should be a simple file that gets the jens grid stations - super bsierp regions and  the lat /lon
+## to plot Fig 1 - this is not automated! Example fig is from a depreciatd script in 2023. Fig1_ESR_map.png
+
+
+data_mapH<-map_data("world2Hires") # map_data from ggmap mapping package
+breaks_w2<-c(185,190,195,200)
+labels_w2<-breaks_w2-360
+
+
+col_jens_custom<-c('red2','#874F6F' ,'red2','blue','red2','red2','#874F6F','#E1C62F',
+                   'dodgerblue',"dodgerblue",'orange','darkgreen','darkgreen','white','grey33','grey33')
+
+
+
+
+windows(8,8)
+ggplot()+
+  coord_equal(xlim=c(181,203),ylim=c(54.8,66),ratio = 1.8)+
+  #xlim(c(140,250))+
+  ylim(c(40,80))+
+  geom_tile(data = plot_single, aes(x = lon2, y = latc,fill=factor(bsierp_name_nb)))+
+  #scale_fill_gradientn(colours = viridis(17), na.value = NA,limits = peak_limits2,trans = "pseudo_log")+
+  scale_fill_manual(values = col_jens_custom,name='Bsierp regions')+
+  geom_polygon(data = data_mapH, aes(x=long, y = lat, group = group),colour="black", fill="darkgrey")+
+  #geom_text(data = avg_dummy_text, aes(x = lon2, y = latc,label=factor(bsierp_name_nb)),size = 2)+
+  ylab("Latitude")+
+  scale_x_continuous("Longitude", breaks=breaks_w2, labels=labels_w2, limits=c(140,250))+
+  ggtitle('')+
+  theme_bw()+
+  theme(axis.text=element_text(size=20),axis.title=element_text(size=20),
+        plot.title = element_text(size=22),
+        panel.grid.major = element_line(colour = "white"),
+        panel.grid.minor = element_line(colour = "white"))
+
+
+
+
 #########################
 ### prep for figure 2 ###
 #########################
