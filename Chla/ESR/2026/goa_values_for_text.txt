@@ -1,0 +1,19 @@
+2026 peak timing
+ecosystem_subarea      peak_bloom
+1 Western Gulf of Alaska        117
+2 Eastern Gulf of Alaska        109
+
+2026 conc at peak
+meanchla n_observations mid_date            ecosystem_subarea      month  year   doy mymax
+2     4.06          10041 2026-04-27 00:00:00 Western Gulf of Alaska     4  2026   117   117
+4     3.53           3896 2026-04-19 00:00:00 Eastern Gulf of Alaska     4  2026   109   109
+
+Time series avg
+  ecosystem_subarea      peak_bloom
+1 Western Gulf of Alaska       141 
+2 Eastern Gulf of Alaska       136
+
+Average conc at bloom peak
+  ecosystem_subarea      maxchla
+1 Western Gulf of Alaska    3.63
+2 Eastern Gulf of Alaska    4.28

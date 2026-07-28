@@ -10,7 +10,7 @@ library(RJDBC)
 library(getPass)
 library(akfinupload)
 
-
+options(java.parameters="-Xmx8g")
 options(timeout=6000)
 myyear <- 1998:2024
 for(i in myyear){
@@ -241,3 +241,28 @@ oc2025 <- oc2025 %>% filter(read_date != "2025-01-01")
 
 # upload
 update_akfin_table(con, oc2025, "OCCCI_CHLA", overwrite=FALSE)
+
+###### 2026 upload #######
+# also upload 2025 after 6/26.
+myyear <- 2026
+for(i in myyear){
+  file_name <- paste0("occci/occci_",i,".nc")
+  download.file(url = paste0("https://coastwatch.pfeg.noaa.gov/erddap/griddap/pmlEsaCCI60OceanColor8Day_Lon0360.nc?chlor_a%5B(",i,"-01-01T00:00:00Z):1:(",i,"-06-26T00:00:00Z)%5D%5B(69):1:(47)%5D%5B(167):1:(230)%5D"),
+                method = "libcurl", mode="wb",destfile = file_name)
+}  
+myyear <- 2025
+for(i in myyear){
+  file_name <- paste0("occci/occci_",i,"_2.nc")
+  download.file(url = paste0("https://coastwatch.pfeg.noaa.gov/erddap/griddap/pmlEsaCCI60OceanColor8Day_Lon0360.nc?chlor_a%5B(",i,"-07-04T00:00:00Z):1:(",i,"-12-27T00:00:00Z)%5D%5B(69):1:(47)%5D%5B(167):1:(230)%5D"),
+                method = "libcurl", mode="wb",destfile = file_name)
+} 
+
+#
+oc2025b <- trim_chl("occci/occci_2025_2.nc")
+oc2026 <- trim_chl("occci/occci_2026.nc")
+min(oc2025b$read_date);max(oc2025b$read_date)
+min(oc2026$read_date);max(oc2026$read_date)
+# dates look good
+
+update_akfin_table(con, oc2025b, "OCCCI_CHLA", overwrite=FALSE)
+update_akfin_table(con, oc2026, "OCCCI_CHLA", overwrite=FALSE)
