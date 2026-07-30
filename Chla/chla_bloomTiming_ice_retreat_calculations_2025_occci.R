@@ -11,7 +11,7 @@ library(forecast)
 # this basically follows the approach in Nielsen et al. 2024 - with some small edits / simplifications. 
 
 # data is created by the sql download 
-p <- readRDS("inter_jens_datafiles/occci_25augSQL.RDS")
+p <- readRDS("inter_jens_datafiles/occci_26.RDS")
 
 # add these as characters 
 p$jens_grid<-as.character(p$jens_grid)
@@ -86,14 +86,14 @@ head(timing_peak_all_log8)
 tail(timing_peak_all_log8)
 
 # save data. 
-saveRDS(timing_peak_all_log8,file='inter_jens_datafiles/bloomTimingOCCCI_1998_2025.RDS')
+saveRDS(timing_peak_all_log8,file='inter_jens_datafiles/bloomTimingOCCCI_1998_2026.RDS')
 
 
 #################################
 ### Calculation with ice data ###
 #################################
 gc()
-is<-readRDS("inter_jens_datafiles/icedata_for_retreat_timing_25augSQL.RDS")
+is<-readRDS("inter_jens_datafiles/icedata_for_retreat_timing_26.RDS")
 head(is) # is means ice in Danish
 is$a_ice<-is$ice_fraction           
 table(is.na(is$ice_fraction))
@@ -126,7 +126,7 @@ ice_ret_15 <- is %>% group_by(jens_grid,year)  %>% arrange(doy,decreasing = TRUE
   summarize(ice_retr_roll15 = max(doy))
 
 unique_jens_grids<-unique(is$jens_grid)
-dummy_fill<-expand.grid(unique_jens_grids,c(1998:2025))
+dummy_fill<-expand.grid(unique_jens_grids,c(1998:2026))
 colnames(dummy_fill)<-c('jens_grid','year')
 
 
@@ -149,7 +149,7 @@ table(is.na(comb_df$mean_ice_frac))
 table(is.na(comb_df$ice_retr_roll15))
 head(comb_df)
 tail(comb_df)
-saveRDS(comb_df,file='inter_jens_datafiles/iceRetreatTiming_1998_2025.RDS')
+saveRDS(comb_df,file='inter_jens_datafiles/iceRetreatTiming_1998_2026.RDS')
 
 
 
