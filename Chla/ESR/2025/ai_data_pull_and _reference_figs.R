@@ -22,8 +22,8 @@ options(java.parameters="-Xmx8g")
 jdbcDriver <- JDBC(driverClass="oracle.jdbc.OracleDriver", classPath="../../snippets/dbconnect/java/ojdbc8.jar")
 
 con_j <- dbConnect(jdbcDriver, 
-                   #"jdbc:oracle:thin:@//tiger:2045/akfin.psmfc.org", 
-                   "jdbc:oracle:thin:@akfin",
+                   "jdbc:oracle:thin:@//tiger:2045/akfin.psmfc.org", 
+                   #"jdbc:oracle:thin:@akfin",
                    key_list("akfin_oracle_db")$username, 
                    keyring::key_get("akfin_oracle_db", keyring::key_list("akfin_oracle_db")$username))
 
@@ -39,36 +39,37 @@ data<-dbFetch(dbSendQuery(con_j, "select round(chlorophyll,2) chla,
                           stat_area
 from env_data.occci_chla a
 left join env_data.occci_spatial_lookup b on a.occci_id=b.occci_id
-where extract(month from to_date(read_date,'YYYY-MM-DD')+4) in (4, 5, 6)
+where extract(month from to_date(read_date,'YYYY-MM-DD')+4) in (4, 5, 6, 8, 9, 10)
 and ecosystem_area = ('Aleutian Islands')"))%>%
-  rename_with(tolower)
-end<-Sys.time()
-end-start
-
-write.csv(data, "data/ai_occci_2025.csv", row.names=FALSE)
-
-start<-Sys.time()
-fall<-dbFetch(dbSendQuery(con_j, paste0("select round(chlorophyll,2) chla, 
-                                      to_date(read_date,'YYYY-MM-DD')+4 mid_date, 
-                                      latitude,
-                                      longitude,
-                                      ecosystem_subarea, 
-                                      depth,
-                                      waters_cod state_fed,
-                                      stat_area
-                                      from env_data.occci_chla a
-                                      left join env_data.occci_spatial_lookup b on a.occci_id=b.occci_id
-where extract(month from to_date(read_date,'YYYY-MM-DD')+4) in (8, 9, 10)
-and ecosystem_area = ('Aleutian Islands')")))%>%
-  rename_with(tolower)
-end<-Sys.time()
-end-start
-
-
-fall <- fall %>%
+  rename_with(tolower) %>%
   mutate(year=year(mid_date))
+end<-Sys.time()
+end-start
 
-write.csv(fall, "data/ai_occci_fall_2025.csv", row.names=FALSE)
+write.csv(data, "data/ai_occci_2026.csv", row.names=FALSE)
+
+# start<-Sys.time()
+# fall<-dbFetch(dbSendQuery(con_j, paste0("select round(chlorophyll,2) chla, 
+#                                       to_date(read_date,'YYYY-MM-DD')+4 mid_date, 
+#                                       latitude,
+#                                       longitude,
+#                                       ecosystem_subarea, 
+#                                       depth,
+#                                       waters_cod state_fed,
+#                                       stat_area
+#                                       from env_data.occci_chla a
+#                                       left join env_data.occci_spatial_lookup b on a.occci_id=b.occci_id
+# where extract(month from to_date(read_date,'YYYY-MM-DD')+4) in (8, 9, 10)
+# and ecosystem_area = ('Aleutian Islands')")))%>%
+#   rename_with(tolower)
+# end<-Sys.time()
+# end-start
+# 
+# 
+# fall <- fall %>%
+#   mutate(year=year(mid_date))
+# 
+# write.csv(fall, "data/ai_occci_fall_2025.csv", row.names=FALSE)
 
 # comparison for Jane
 #load data with depth, season, and region filters
@@ -297,3 +298,43 @@ data %>%
   ylim(c(0,4.2))+
   ylab("coverage (black) and mean chla (green)")
 dev.off()
+
+#### 2026 comp #####
+check_odd_even <- function(number) {
+  ifelse((number %% 2 == 0), "even", "odd") 
+}
+
+data2<-data %>%
+  mutate(month=month(mid_date))%>%
+  filter(month %in% c(4,5,6)) %>%
+  group_by(ecosystem_subarea, year) %>%
+  summarize(meanchla=mean(chla, na.rm=T))%>%
+  mutate(oddeven=check_odd_even(year)
+         )
+
+ggplot(data2)+
+  geom_line( aes(x=year, y=meanchla))+
+  geom_point(aes(x=year, y=meanchla, color=oddeven))+
+  facet_wrap(~factor(ecosystem_subarea, levels=c("Western Aleutians", "Central Aleutians", "Eastern Aleutians")))+
+  ylim(c(0,2.5))+
+  theme_bw()
+
+
+### GOA
+data3<- read.csv("ESR/2026/occci_conc_peak.csv")
+
+# Function to check if a number is odd or even
+check_odd_even <- function(number) {
+  ifelse((number %% 2 == 0), "even", "odd") 
+}
+
+data3<-data3 %>%
+  mutate(oddeven=check_odd_even(year),
+         ecosystem_subarea=fct_relevel(ecosystem_subarea,"Western Gulf of Alaska","Eastern Gulf of Alaska"))
+
+ggplot(data3)+
+  geom_line( aes(x=year, y=amj_meanchla))+
+  geom_point(aes(x=year, y=amj_meanchla, color=oddeven))+
+  facet_wrap(~ecosystem_subarea)+
+  ylim(c(0,2.5))+
+  theme_bw()
