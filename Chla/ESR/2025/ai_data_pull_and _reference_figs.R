@@ -48,6 +48,16 @@ end-start
 
 write.csv(data, "data/ai_occci_2026.csv", row.names=FALSE)
 
+# data broken into spring and fall
+fall <- data %>%
+  mutate(month=month(mid_date)) %>%
+  filter(month>7)
+write.csv(fall, "data/ai_fall_occci_2026.csv", row.names=FALSE)
+
+spring <- data %>%
+  mutate(month=month(mid_date)) %>%
+  filter(month<=7)
+write.csv(spring, "data/ai_spring_occci_2026.csv", row.names=FALSE)
 # start<-Sys.time()
 # fall<-dbFetch(dbSendQuery(con_j, paste0("select round(chlorophyll,2) chla, 
 #                                       to_date(read_date,'YYYY-MM-DD')+4 mid_date, 
