@@ -58,3 +58,17 @@ head(ice)
 tail(ice)
 
 saveRDS(ice,file='inter_jens_datafiles/icedata_for_retreat_timing_26.RDS')
+
+
+# super region lookup-should add this to OC-CCI spatial lookup table at some point
+super_bsierp<-dbFetch(dbSendQuery(con, "select distinct(bsierp_id), bsierp_super_region from ENV_DATA.globcolour_spatial_lookup
+order by bsierp_super_region,bsierp_id"))%>%
+  rename_with(tolower)
+
+saveRDS(super_bsierp,file='inter_jens_datafiles/super_bsierp_lkp.RDS')
+
+# and just download the spatial lookup
+lkp<-dbFetch(dbSendQuery(con, "select * from env_data.occci_spatial_lookup"))%>%
+  rename_with(tolower)
+
+saveRDS(lkp,file='inter_jens_datafiles/occci_spatial_lkp.RDS')

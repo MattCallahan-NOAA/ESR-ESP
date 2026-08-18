@@ -13,20 +13,17 @@ library(viridis)
 # General note. You need to add additional years when updating to 2026
 
 
-# dummy file to create bsierp to super region designations (using last years file 2024). 
 
-bs24<-readRDS('inter_jens_datafiles/globcolour_24augSQL.RDS')
-head(bs24)
-
-# creating the super regions from the old file (this was a hack because the super regions were not in the occci data). So could be removed in future
-dummy_region<-bs24 %>% group_by(bsierp_id,bsierp_super_region) %>% summarize() 
+# super region
+dummy_region<-readRDS('inter_jens_datafiles/super_bsierp_lkp.RDS') %>%
+  mutate(bsierp_super_region=case_match(bsierp_super_region, "Central inner shelf" ~ "South inner shelf",  .default = bsierp_super_region))
 
 # 
 
-# data is created from the sql pull using the script "EBS_data_pull_occci_2025.R" in the 2025 folder.
+# data is created from the sql pull using the script "EBS_data_pull_occci_2026.R" in the 2026 folder.
 # and data is stored in "inter_jens_datafiles" which is gitignore.
 
-bs <- readRDS("inter_jens_datafiles/occci_25augSQL.RDS")
+bs <- readRDS("inter_jens_datafiles/occci_26.RDS")
 head(bs)
 bs$bsierp_id<-as.character(bs$bsierp_id)
 tail(bs)
@@ -43,7 +40,13 @@ table(bs$month,bs$year)
 
 ## here should be a simple file that gets the jens grid stations - super bsierp regions and  the lat /lon
 ## to plot Fig 1 - this is not automated! Example fig is from a depreciatd script in 2023. Fig1_ESR_map.png
+# test generating from lkp table
+lkp<-readRDS('inter_jens_datafiles/occci_spatial_lkp.RDS')
+lkp<-lkp %>% full_join(dummy_region,by='bsierp_id')
 
+lkp<-lkp %>% filter(!is.na(bsierp_super_region) & ecosystem_area=="Eastern Bering Sea")
+ggplot(lkp)+geom_point(aes(x=lon360, y=latitude, color=bsierp_super_region))
+#Note-need to make central inner shelf into South inner shelf
 
 data_mapH<-map_data("world2Hires") # map_data from ggmap mapping package
 breaks_w2<-c(185,190,195,200)
@@ -99,7 +102,7 @@ super_avg_sub<-subset(super_avg,bsierp_super_region %in% c("South inner shelf","
 
 
 # sets up the darker blue color of the most recent year
-color_filler<-rep(c(rep('dodgerblue',27),'blue'),8) # fix here - when more years are added # 
+color_filler<-rep(c(rep('dodgerblue',28),'blue'),8) # fix here - when more years are added # 
 
 
 ## plot trick - for "controlling the SDs"###
@@ -151,7 +154,7 @@ windows(14,8)
 fig2
 
 # save plot 
-png(filename="Chla/ESR/2025/newFig2_satellite_Chla_ESR_EBS.png",width = 1600, height = 1100,res=120)
+png(filename="ESR/2026/newFig2_satellite_Chla_ESR_EBS.png",width = 1600, height = 1100,res=120)
 plot(fig2)
 dev.off()
 # rejoice (or actually move on to Fig 3 )#
@@ -222,7 +225,7 @@ dev.off()
 # in an internal folder "inter_jens_datafiles" (in gitignore)
 
 
-bl <- readRDS("inter_jens_datafiles/bloomTimingOCCCI_1998_2025.RDS")
+bl <- readRDS("inter_jens_datafiles/bloomTimingOCCCI_1998_2026.RDS")
 
 # again merging to include the regions 
 bl<-bl %>% full_join(dummy_region,by='bsierp_id')
@@ -238,17 +241,17 @@ head(sum_bl_sub)
 
 
 # these 2 jens grids are the ones near the M2 mooring. 
-m2_glob<- bl[bl$jens_grid %in% c(108,109), ]
+m2_oc<- bl[bl$jens_grid %in% c(108,109), ]
 
 #plot(m2_glob$year, m2_glob$gap_sizeTS)
 
-m2_glob_agg<- m2_glob %>% group_by(year) %>% summarize(avg_peak = mean(peak_timing_all_log,na.rm=TRUE),
+m2_oc_agg<- m2_oc %>% group_by(year) %>% summarize(avg_peak = mean(peak_timing_all_log,na.rm=TRUE),
                                                        sd_peak = sd(peak_timing_all_log,na.rm=TRUE))
 
-m2_glob_agg$bsierp_super_region<-rep("M2 mooring",nrow(m2_glob_agg))
+m2_oc_agg$bsierp_super_region<-rep("M2 mooring",nrow(m2_oc_agg))
 
   
-sat<-rbind(sum_bl_sub, m2_glob_agg)
+sat<-rbind(sum_bl_sub, m2_oc_agg)
 head(sat)
 sat$bsierp_super_region<-factor((as.character(sat$bsierp_super_region)), levels=c("South outer shelf","South middle shelf","South inner shelf",
                                                                                     "Offshelf","M2 mooring"))  
@@ -258,13 +261,13 @@ sat$bsierp_super_region<-factor((as.character(sat$bsierp_super_region)), levels=
 # 2005-2019 are from Nielsen 2024 - "Spring phytoplankton bloom phenology during recent climate warming on the Bering Sea shelf"
 
 
-sigler<-read.csv("Chla/ESR/mooring_bloom_estimates/Sigler_2014_timing_data_modified_version.csv",header=TRUE, dec=".",sep=",",na.strings="NA")
+sigler<-read.csv("ESR/mooring_bloom_estimates/Sigler_2014_timing_data_modified_version.csv",header=TRUE, dec=".",sep=",",na.strings="NA")
 sig_m2<-sigler[sigler$Moor=="M2",]
 
 # Additional data from Nielsen 
-load("Chla/ESR/mooring_bloom_estimates/timing_data_M2_mooring_peaks_30_dec2021.RData")
+load("ESR/mooring_bloom_estimates/timing_data_M2_mooring_peaks_30_dec2021.RData")
 mor_m2<-jnd_tbl_m2
-dummy_year<-data.frame(1998:2025)
+dummy_year<-data.frame(1998:2026)
 colnames(dummy_year)<-'year'
 mor_m2<-merge(mor_m2,dummy_year,all=T,by='year')
 
@@ -319,7 +322,7 @@ mooring$prim_hybrid[55]<-136 # day of year - based on Prawler data
 mooring$prim_hybrid[28]#<- 136 # day of year - based on Prawler data
 mooring$prim_hybrid[56]#<-136 # day of year - based on Prawler data
 
-
+m2_2022_2026<-c()
 ###
 ### average long-term data 
 ###
@@ -338,7 +341,7 @@ fig4<- ggplot(sat,aes(avg_peak, year)) +
   geom_vline(data= long_termavg, aes(xintercept=avg_peak), linetype="dashed", color = "black",size=1)+
   facet_wrap(bsierp_super_region~.,ncol=3,labeller =as_labeller(jens_names_fig4)) +
   xlim(70, 190)+
-  scale_y_continuous(limits = c(1997,2025), breaks = seq(1997,2025,2))+
+  scale_y_continuous(limits = c(1997,2026), breaks = seq(1997,2026,2))+
   geom_point(data= sat, aes(x=avg_peak,y=year), color = "black",size=3,pch=15,alpha=1)+
   geom_errorbar(data= sat, aes(y=year,xmin=avg_peak-sd_peak, xmax=avg_peak+sd_peak), width=.3,col='black',alpha=1)+
   geom_point(data= mooring, aes(x=prim_hybrid,y=year), color = "dodgerblue",size=3,pch=19,alpha=0.7)+
@@ -358,7 +361,7 @@ fig4<- ggplot(sat,aes(avg_peak, year)) +
 windows(11,9)
 fig4
 # 
-png(filename="Chla/ESR/2025/Fig4_satellite_Chla_ESR_EBS_bloomtiming.png",width = 1600, height = 1400,res=120)
+png(filename="ESR/2026/Fig4_satellite_Chla_ESR_EBS_bloomtiming.png",width = 1600, height = 1400,res=120)
 plot(fig4)
 dev.off()
 
