@@ -25,20 +25,24 @@ E_data<- E2 %>% full_join(E, by=c('jens_grid','year'))
 
 head(E_data)
 
-
-grid_ll <- readRDS("inter_jens_datafiles/glob_bloom_type_DECISION_tree_data_feb2023.RDS")
-head(grid_ll)
-grid<-grid_ll %>% group_by(gridid) %>% summarise(lat = mean(gl_lat,na.rm=TRUE),
-                                                 lon = mean(gl_lon,na.rm=TRUE))
+# this is just south or north according to jens notes
+# jens notes actually said 259, 249 is correct, but it doesn't matter for this given the above filtering,
+Edf<-E_data %>% mutate(north_south=ifelse(jens_grid>249, "north", "south")) 
 
 
-colnames(grid)[1]<-'jens_grid'
-
-grid$jens_grid<-as.character(grid$jens_grid)
-
-Edf<- E_data %>% left_join(grid, by=c('jens_grid'))
-
-head(Edf)
+# grid_ll <- readRDS("inter_jens_datafiles/glob_bloom_type_DECISION_tree_data_feb2023.RDS")
+# head(grid_ll)
+# grid<-grid_ll %>% group_by(gridid) %>% summarise(lat = mean(gl_lat,na.rm=TRUE),
+#                                                  lon = mean(gl_lon,na.rm=TRUE))
+# 
+# 
+# colnames(grid)[1]<-'jens_grid'
+# 
+# grid$jens_grid<-as.character(grid$jens_grid)
+# 
+# Edf<- E_data %>% left_join(grid, by=c('jens_grid'))
+# 
+# head(Edf)
 
 
 ###
@@ -49,9 +53,9 @@ Edf$bloom_ice_diff<-Edf$peak_timing_all_log -Edf$ice_retr_roll15
 Edf$bloomtype<-'ice_full'
 Edf$bloomtype[Edf$bloom_ice_diff>20]<-'ice_free'
 
-
-Edf$north_south<-'north'
-Edf$north_south[Edf$lat<60.0001]<-'south'
+# 
+# Edf$north_south<-'north'
+# Edf$north_south[Edf$lat<60.0001]<-'south'
 
 
 head(Edf)
@@ -71,7 +75,7 @@ wide_type$perc_open_water<- (wide_type$ice_free/ (wide_type$ice_free+wide_type$i
 
 tail(wide_type)
 
-check24 <- read.csv('Chla/ESP/2024_indicators/bloom_type_ESP_crab_middle_outer_with2024.csv')
+check24 <- read.csv('ESP/2024_indicators/bloom_type_ESP_crab_middle_outer_with2024.csv')
 
 head(check24)
 
@@ -99,12 +103,12 @@ bloomtype_compare<-ggplot(data=wide_type[wide_type$year<2025,], aes(x = year, y 
         axis.text.x=element_text(color="black"))
 
 
-png(filename="Chla/ESP/2025_indicators/OCCCI_bloomtype_timeseriesESP_crab_middle_outer.png",width = 1600, height = 1200,res=120)
+png(filename="ESP/2026/OCCCI_bloomtype_timeseriesESP_crab_middle_outer.png",width = 1600, height = 1200,res=120)
 plot(bloomtype_compare)
 dev.off()
 
 
-write_csv(wide_type, file='Chla/ESP/2025_indicators/OCCCI_bloom_type_ESP_crab_middle_outer_with2024.csv')
+write_csv(wide_type, file='ESP/2026/OCCCI_bloom_type_ESP_crab_middle_outer_with2026.csv')
 
 ############################
 ### compare bloom timing ###
@@ -114,7 +118,7 @@ bloomTiming_occci <- Edf %>% group_by(year, north_south) %>% summarize(mean_peak
                                                                  sd_peak=sd(peak_timing_all_log,na.rm=TRUE))
 
 # old data 
-old_opie_timing<- read.csv('Chla/ESP/2025_indicators/bloom_timing_NS_OPIE_2024.csv')
+old_opie_timing<- read.csv('ESP/2025_indicators/bloom_timing_NS_OPIE_2024.csv')
 head(old_opie_timing)
 windows()
 bloomtype_compare_shade<-ggplot() +
@@ -137,7 +141,7 @@ bloomtype_compare_shade<-ggplot() +
   facet_wrap(.~north_south,ncol=1)
 
 
-png(filename="Chla/ESP/2025_indicators/OCCCI_bloomtiming_timeseriesESP_crab_middle_outer_shaded.png",width = 1600, height = 1200,res=120)
+png(filename="ESP/2026/OCCCI_bloomtiming_timeseriesESP_crab_middle_outer_shaded.png",width = 1600, height = 1200,res=120)
 plot(bloomtype_compare_shade)
 dev.off()
 
@@ -163,8 +167,8 @@ bloomtype_compare<-ggplot() +
 
 
 
-png(filename="Chla/ESP/2025_indicators/OCCCI_bloomtiming_timeseriesESP_crab_middle_outer.png",width = 1600, height = 1200,res=120)
+png(filename="ESP/2026/OCCCI_bloomtiming_timeseriesESP_crab_middle_outer.png",width = 1600, height = 1200,res=120)
 plot(bloomtype_compare)
 dev.off()
 
-write_csv(bloomTiming_occci, file='Chla/ESP/2025_indicators/OCCCI_bloomTiming_occci_ESP_crab_middle_outer_with2024.csv')
+write_csv(bloomTiming_occci, file='ESP/2026/OCCCI_bloomTiming_occci_ESP_crab_middle_outer_with2026.csv')
