@@ -22,6 +22,8 @@ E2<- i26[i26$jens_grid   %in% c(39,62:64,84:88,103:112,125:135,147:153, 170:175,
 
 
 E_data<- E2 %>% full_join(E, by=c('jens_grid','year'))
+#Matt edit
+#E_data<- i26 %>% full_join(f26, by=c('jens_grid','year'))
 
 head(E_data)
 
@@ -76,8 +78,15 @@ wide_type$perc_open_water<- (wide_type$ice_free/ (wide_type$ice_free+wide_type$i
 tail(wide_type)
 
 check24 <- read.csv('ESP/2024_indicators/bloom_type_ESP_crab_middle_outer_with2024.csv')
+check25 <- read.csv("ESP/2025_indicators/OCCCI_bloom_type_ESP_crab_middle_outer_with2024.csv")
 
 head(check24)
+ggplot()+
+  geom_line(data=check24,aes(x = year, y = perc_open_water),color='black',linewidth=1.5)+
+  geom_line(data=check25,aes(x = year, y = perc_open_water),color='gray',linewidth=1.5)+
+  geom_line(data=wide_type,aes(x = year, y = perc_open_water),color='red',linewidth=1.5) +
+  facet_wrap(~north_south)+
+  ggtitle("black=2024, gray=2025, red=2026")
 
 ###
 ###
