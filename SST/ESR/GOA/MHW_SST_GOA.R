@@ -37,7 +37,7 @@ mytheme <- theme(strip.text = element_text(size=10,color="white",family="sans",f
 #   detect_event(ts2clm(data %>% filter(Ecosystem_sub==region), climatologyPeriod = c("1986-01-01", "2015-12-31")))
 # }
 
-newdat <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Eastern%20Gulf%20of%20Alaska,Western%20Gulf%20of%20Alaska&start_date=19850101&end_date=20260513'), type = "application/json") %>% 
+newdat <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Eastern%20Gulf%20of%20Alaska,Western%20Gulf%20of%20Alaska&start_date=19850101&end_date=20260901'), type = "application/json") %>% 
   bind_rows %>% 
   mutate(date=as_date(READ_DATE)) %>% 
   data.frame %>% 
@@ -300,7 +300,7 @@ annualevents %>%
   scale_fill_manual(name="",labels=c("Summer","Fall","Winter","Spring"),values=c(OceansBlue2,Crustacean1,UrchinPurple1,WavesTeal1)) +
   #geom_bar(aes(year2,totaldays),stat="identity",fill=OceansBlue2) + 
   #geom_bar(aes(year2,winterdays),stat="identity",fill=Crustacean1) + 
-  geom_text(data=annual_deviation, mapping=aes(x=year2, y=330, label=mean_dev))+
+  #geom_text(data=annual_deviation, mapping=aes(x=year2, y=330, label=mean_dev))+
   mytheme + 
   facet_wrap(~region) + 
   scale_x_continuous(expand=c(0,0.5)) +

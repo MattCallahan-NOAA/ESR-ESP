@@ -35,7 +35,7 @@ mytheme <- theme(strip.text = element_text(size=10,color="white",family="sans",f
                  legend.key.size = unit(1,"line"))
 
 #specify ESR year
-current.year <- 2025
+current.year <- year(Sys.Date())
 last.year <- current.year-1
 climatology_start_year <- 1985
 climatology_start_date <- "1985-01-01"
@@ -44,7 +44,7 @@ climatology_end_date <- "2014-12-31"
 mean.years <- climatology_start_year:climatology_end_year 
 mean.lab <- paste0("Mean ",climatology_start_year,"-",climatology_end_year)
 
-newdat <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Southeastern%20Bering%20Sea,Northern%20Bering%20Sea&start_date=19850101&end_date=20250901'), type = "application/json") %>% 
+newdat <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Southeastern%20Bering%20Sea,Northern%20Bering%20Sea&start_date=19850101&end_date=20260901'), type = "application/json") %>% 
   bind_rows %>% 
   mutate(date=as_date(READ_DATE)) %>% 
   data.frame %>% 
@@ -70,7 +70,7 @@ mymean <- newdat %>%
          sdheat=sd(cumheat[between(year2,1986,climatology_end_year)]), # Mannually change
          anomaly=cumheat-meanheat)
 
-png("EBS/2025/Callahan_Fig1.png",width=6,height=3.375,units="in",res=300)
+png(paste0("EBS/",current.year,"/Callahan_Fig1.png"),width=6,height=3.375,units="in",res=300)
 mymean %>% 
   ggplot(aes(year2,anomaly)) +
   geom_bar(stat="identity",fill=OceansBlue2) + 
@@ -120,7 +120,7 @@ dev.off()
 # dev.off()
 
 #line for tyler
-png("EBS/2025/Callahan_Fig2_line.png",width=6,height=4,units="in",res=300)
+png(paste0("EBS/",current.year,"/Callahan_Fig2_line.png"),width=6,height=4,units="in",res=300)
 newdat %>% 
   filter(year2>1985) %>% 
   mutate(Season=case_when(
@@ -170,7 +170,7 @@ seas_mean_sd<-seasmean%>%
   summarize(avg_sst=mean(meansst),
             sd_sst=sd(meansst))
 
-png("EBS/2025/Callahan_Fig2_line_sd.png",width=6,height=4,units="in",res=300)
+png(paste0("EBS/",current.year,"/Callahan_Fig2_line_sd.png"),width=6,height=4,units="in",res=300)
 ggplot(data=seasmean, aes(year2,meansst,color=Season)) + 
   geom_hline(data=seas_mean_sd,aes(yintercept=avg_sst, color=Season)) +
   geom_hline(data=seas_mean_sd,aes(yintercept=avg_sst-sd_sst, color=Season),linetype=2) +
@@ -240,7 +240,7 @@ mytheme2 <- theme(strip.text = element_text(size=10,color="white",family="sans",
                  axis.text.x = element_text(size=9,family="sans",color="black",hjust=0.75),
                  panel.border=element_rect(colour="black",fill=NA,size=0.5),
                  panel.background = element_blank(),
-                 legend.position=c(0.1,0.85),
+                 legend.position=c(0.15,0.85),
                  legend.background = element_blank(),
                  legend.key.size = unit(1,"line"),
                  legend.key=element_blank(),
@@ -250,7 +250,7 @@ mytheme2 <- theme(strip.text = element_text(size=10,color="white",family="sans",
 
 #png("SST_ESR/2020/EBS/Watson_Fig5_010421.png",width=7,height=5,units="in",res=   300)
 #Update date in this figure!
-png("EBS/2025/Callahan_Fig3.png",width=7,height=5,units="in",res=300)
+png(paste0("EBS/",current.year,"/Callahan_Fig3.png"),width=7,height=5,units="in",res=300)
 ggplot(data = clim_cat %>% filter(t>=as.Date(paste0(current.year-3,"-09-01"))), aes(x = t, y = temp)) +
   geom_line(aes(y = temp, col = "Temperature"), size = 0.85) +
   geom_flame(aes(y2 = thresh, fill = Moderate)) +
@@ -381,7 +381,7 @@ dfmean <- df %>%
             sdtrend=sd(trend[between(year,climatology_start_year,climatology_end_year)],na.rm=TRUE))
 
 
-png("EBS/2025/Callahan_Fig5.png",width=7,height=5,units="in",res=300)
+png(paste0("EBS/",current.year,"/Callahan_Fig5.png"),width=7,height=5,units="in",res=300)
 df %>% 
   ggplot(aes(x = date, y = trend)) + 
   geom_line() + 

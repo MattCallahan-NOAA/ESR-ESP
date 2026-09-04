@@ -32,7 +32,7 @@ mytheme <- theme(strip.text = element_text(size=10,color="white",family="sans",f
                  legend.key.size = unit(1,"line"))
 
 
-data <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Western%20Aleutians,Central%20Aleutians,Eastern%20Aleutians&start_date=19850101&end_date=20260513'), type = "application/json") %>% 
+data <- httr::content(httr::GET('https://apex.psmfc.org/akfin/data_marts/akmp/ecosystem_sub_crw_avg_sst?ecosystem_sub=Western%20Aleutians,Central%20Aleutians,Eastern%20Aleutians&start_date=19850101&end_date=20260901'), type = "application/json") %>% 
   bind_rows %>% 
   mutate(date=as_date(READ_DATE)) %>% 
   data.frame %>% 
@@ -321,7 +321,7 @@ annualevents %>%
   ylab("Number of Marine Heatwave Days") +
   #theme_bw() + 
   theme(plot.margin=unit(c(0.15,0.25,0.05,0),"cm"),
-        legend.position = c(0.01,0.85),
+        legend.position = c(0.15,0.85),
         legend.text = element_text(size=9),
         panel.background = element_blank(),
         panel.grid = element_blank())
@@ -382,7 +382,7 @@ annualevents %>%
   
   xlab("Year") + 
   ylab("Number of Marine Heatwave Days") +
-  
+  theme_bw()+
   theme(
     plot.margin = unit(c(0.15, 0.25, 0.35, 0), "cm"),
     legend.position = c(0.1, 0.85)
