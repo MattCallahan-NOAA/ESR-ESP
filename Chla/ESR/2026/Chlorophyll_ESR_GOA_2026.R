@@ -241,7 +241,7 @@ dev.off()
 ####------------------------------------------------------####
 
 
-# extra code for adding peak timing to text
+# extra code for text
 
 #get peak bloom 
 data %>% 
@@ -251,7 +251,7 @@ data %>%
   group_by(ecosystem_subarea) %>% 
   summarise(peak_bloom=mean(mymax))
 
-# Peak bloom for all years
+# Peak bloom for all previous years
 data %>% 
   filter(doy>=50 & doy<=180 & year< current.year) %>% 
   group_by(ecosystem_subarea,year) %>% 
@@ -259,13 +259,13 @@ data %>%
   group_by(ecosystem_subarea) %>% 
   summarise(peak_bloom=mean(mymax))
 
-# peak bloom each year
+# chlorophyll concentration at peak bloom each year
 data %>% 
   filter(doy>=50 & doy<=180 & year< current.year) %>% 
   group_by(ecosystem_subarea,year) %>% 
   summarise(maxchla=max(meanchla))  %>%
   group_by(ecosystem_subarea) %>%
-  summarise(maxchla=max(maxchla))
+  summarise(maxchla=mean(maxchla))
 
 #get values for 2026 at each of those dates
 data %>% 
@@ -273,12 +273,13 @@ data %>%
   group_by(ecosystem_subarea) %>% 
   mutate(mymax=doy[meanchla==max(meanchla)][1])
 
-# get the mean chla and peak bloom for all years
+# get the mean chla and peak bloom timing for all years
 data%>%
   filter(month %in% (4:6))%>%
   group_by(ecosystem_subarea, year)%>%
   summarize(amj_meanchla=mean(meanchla),
-            peak_bloom_doy=doy[meanchla==max(meanchla)][1])%>%
+            peak_bloom_doy=doy[meanchla==max(meanchla)][1],
+            peak_bloom_conc=max(meanchla))%>%
   #arrange(annual_meanchla)%>%
   print(n=Inf) %>%
   # save csv
@@ -361,6 +362,6 @@ data %>%
   geom_line(aes(x=mid_date, y=meanchla), color="green") +
   geom_hline(yintercept=1, color="gray", lty=2)+
   facet_wrap(~ecosystem_subarea)+
-  ylim(c(0,3.5))+
+  ylim(c(0,4.5))+
   ylab("coverage (black) and mean chla (green)")
 dev.off()

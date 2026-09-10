@@ -159,6 +159,8 @@ plot(fig2)
 dev.off()
 # rejoice (or actually move on to Fig 3 )#
 
+# save input data for ebet
+write.csv(super_avg_sub, file='ESR/2026/EBS_chla_avg_bsierp_super_region.csv')
 
 ##
 ##fig 3 - which I think we might not be making for the ESR anymore. But its still helpful to look at 

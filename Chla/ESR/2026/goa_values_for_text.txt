@@ -15,5 +15,10 @@ Time series avg
 
 Average conc at bloom peak
   ecosystem_subarea      maxchla
-1 Western Gulf of Alaska    3.63
-2 Eastern Gulf of Alaska    4.28
+1 Western Gulf of Alaska    2.72
+2 Eastern Gulf of Alaska    2.89
+
+AMJ time series avg conc
+  ecosystem_subarea      overall_meanchla stdev
+1 Eastern Gulf of Alaska             1.60 0.197
+2 Western Gulf of Alaska             1.64 0.207
