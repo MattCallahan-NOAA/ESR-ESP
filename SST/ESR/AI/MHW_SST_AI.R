@@ -443,6 +443,7 @@ mhw_ai2<-mhw_ai2%>%mutate(ecosystem_sub=fct_relevel(ecosystem_sub,
 
 #reassign ice to no heatwave
 mhw_ai2$heatwave_category<-recode(mhw_ai2$heatwave_category, "I"="0")
+mhw_ai2$heatwave_category<-recode(mhw_ai2$heatwave_category, "L"="0")
 mhw_ai2$Intensity<-recode(mhw_ai2$heatwave_category, "0"="No heatwave", "1"="Moderate", "2"="Strong", "3"="Severe", "4"="Extreme")
 mhw_ai2<-mhw_ai2%>%mutate(Intensity=fct_relevel(Intensity, c("No heatwave", "Moderate", "Strong", "Severe")))
 #calculate 5 day averages
@@ -453,7 +454,7 @@ mhw_ai2_5<-mhw_ai2%>%
 
 #function for a smoothed version
 count_by_mhw_d<-function(x){
-  mycolors=c("white", "#ffc866","#ff6900", "#9e0000", "#0093D0", "#2d0000", "#0093D0", "white")
+  mycolors=c("white", "#ffc866","#ff6900", "#9e0000", "#2d0000","#0093D0",  "#0093D0", "white")
   ggplot() +
     geom_histogram(data=x,
                    aes(read_date,mean_5day, fill=Intensity, color=Intensity), 
@@ -479,6 +480,30 @@ png(paste0("AI/",current.year,"/ai_mhw_by_status_5day.png"), width=9,height=4.5,
 count_by_mhw_d(mhw_ai2_5)
 dev.off()
 
+unique(mhw_ai2_5$Intensity)
+
+#  which ones are 'L'
+# Land? I converted these to no heatwave above.
+jan1<- dbFetch(dbSendQuery(con,
+                                     paste0("select 
+a.heatwave_category,
+a.read_date, 
+b.ecosystem_sub, 
+b.latitude,
+b.longitude
+from (select
+crw_id, read_date, heatwave_category
+from afsc.erddap_crw_sst
+where extract(year from read_date)=2026
+and extract(month from READ_DATE) = 1
+and extract(day from READ_DATE) = 1) a
+inner join (select id, ecosystem_sub, latitude, longitude 
+from afsc.erddap_crw_sst_spatial_lookup
+where ecosystem ='Aleutian Islands') b
+on a.crw_id=b.id")))
+
+ggplot()+
+  geom_point(data=jan1, aes(x=ifelse(LONGITUDE>0, LONGITUDE-360, LONGITUDE) , y=LATITUDE, fill=HEATWAVE_CATEGORY, color=HEATWAVE_CATEGORY))
 
 #does temp ever go below seasonal in 2023?
 any(with(clim_cat%>%filter(year==2023), temp-seas<0), na.rm=T)
