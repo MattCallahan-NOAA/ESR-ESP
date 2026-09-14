@@ -4,8 +4,11 @@ library(lubridate)
 library(sf)
 library(akgfmaps)
 
+
+# 2026 NEW mom6 data -ended up doing this in a new file.
+file <- "EBS/Data/MOM6/tob.nep.iq0-342jq446-743.hcast.daily.e202604.20260101.nc"
 # new mom6 data
-file <- "EBS/Data/MOM6/mom6nep_hc202507_selected_daily_20250701.nc"
+#file <- "EBS/Data/MOM6/mom6nep_hc202507_selected_daily_20250701.nc"
 
 
 grid <-  tidync("EBS/Data/MOM6/mom6nep_hc202507_ocean_static.nc") %>%
