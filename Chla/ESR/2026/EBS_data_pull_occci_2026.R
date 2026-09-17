@@ -72,3 +72,12 @@ lkp<-dbFetch(dbSendQuery(con, "select * from env_data.occci_spatial_lookup"))%>%
   rename_with(tolower)
 
 saveRDS(lkp,file='inter_jens_datafiles/occci_spatial_lkp.RDS')
+
+# get centroids of jens grids
+jens_cent<-dbFetch(dbSendQuery(con, "select  jens_grid, avg(latitude) mean_lat, avg(longitude) mean_lon
+from env_data.OCCCI_spatial_lookup
+                               where jens_grid >=0
+                               group by jens_grid"))%>%
+  rename_with(tolower)
+
+saveRDS(jens_cent,file='inter_jens_datafiles/jens_grid_centroids.RDS')

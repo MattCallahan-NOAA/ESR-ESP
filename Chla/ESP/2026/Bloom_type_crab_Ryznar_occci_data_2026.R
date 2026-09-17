@@ -27,9 +27,10 @@ E_data<- E2 %>% full_join(E, by=c('jens_grid','year'))
 
 head(E_data)
 
-# this is just south or north according to jens notes
-# jens notes actually said 259, 249 is correct, but it doesn't matter for this given the above filtering,
-Edf<-E_data %>% mutate(north_south=ifelse(jens_grid>249, "north", "south")) 
+# Pull jens_grid centroids to assign north/south
+jc<-readRDS("inter_jens_datafiles/jens_grid_centroids.RDS")
+E_data <- E_data %>% left_join(jc, by=c('jens_grid'))
+Edf<-E_data %>% mutate(north_south=ifelse(mean_lat>60, "north", "south")) 
 
 
 # grid_ll <- readRDS("inter_jens_datafiles/glob_bloom_type_DECISION_tree_data_feb2023.RDS")
@@ -92,7 +93,7 @@ ggplot()+
 ###
 ###
 
-bloomtype_compare<-ggplot(data=wide_type[wide_type$year<2025,], aes(x = year, y = perc_open_water,color=north_south)) + 
+bloomtype_compare<-ggplot(data=wide_type[wide_type$year<2026,], aes(x = year, y = perc_open_water,color=north_south)) + 
   geom_line(linewidth = 3) + 
   scale_fill_manual(values=c('red3','dodgerblue'),na.value = 'grey90')+
   scale_color_manual(values=c('red3','dodgerblue'),na.value = 'grey90')+
@@ -181,3 +182,5 @@ plot(bloomtype_compare)
 dev.off()
 
 write_csv(bloomTiming_occci, file='ESP/2026/OCCCI_bloomTiming_occci_ESP_crab_middle_outer_with2026.csv')
+
+
