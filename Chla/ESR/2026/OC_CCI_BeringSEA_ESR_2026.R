@@ -311,18 +311,30 @@ mooring
 # additional m2 mooring bloom timing estimates were done from the Profiling crawler which reports live for the year. 
 # we add those to eh M2 estimates and the south middle shelf estimates 
 
-# personal M2 mooring inspection - peak estimation 2023
-mooring$prim_hybrid[25]<-142 # day of year - based on Prawler data
-mooring$prim_hybrid[53]<-142 # day of year - based on Prawler data
 
-# setting 2024 (from Prawler)
 
-mooring$prim_hybrid[27]<- 136 # day of year - based on Prawler data
-mooring$prim_hybrid[55]<-136 # day of year - based on Prawler data
+# # personal M2 mooring inspection - peak estimation 2023
+# mooring$prim_hybrid[25]<-142 # day of year - based on Prawler data
+# mooring$prim_hybrid[53]<-142 # day of year - based on Prawler data
+# 
+# # setting 2024 (from Prawler)
+# 
+# mooring$prim_hybrid[27]<- 136 # day of year - based on Prawler data
+# mooring$prim_hybrid[55]<-136 # day of year - based on Prawler data
+# 
+# # setting 2025 - didn't hhave this so no 2025 estimate. Mabye we have it now? 
+# mooring$prim_hybrid[28]#<- 136 # day of year - based on Prawler data
+# mooring$prim_hybrid[56]#<-136 # day of year - based on Prawler data
 
-# setting 2025 - didn't hhave this so no 2025 estimate. Mabye we have it now? 
-mooring$prim_hybrid[28]#<- 136 # day of year - based on Prawler data
-mooring$prim_hybrid[56]#<-136 # day of year - based on Prawler data
+mooring<-mooring %>%
+  mutate(prim_hybrid = case_when(year==2023 & bsierp_super_region=="M2 mooring" ~ 142,
+                                 year==2023 & bsierp_super_region=="South middle shelf" ~ 142,
+                                 year==2024 & bsierp_super_region=="M2 mooring" ~ 136,
+                                 year==2024 & bsierp_super_region=="South middle shelf" ~ 136,
+                                 year==2026 & bsierp_super_region=="M2 mooring" ~ 128,
+                                 year==2026 & bsierp_super_region=="South middle shelf" ~ 128,
+                                 TRUE ~ prim_hybrid))
+mooring
 
 m2_2022_2026<-c()
 ###
