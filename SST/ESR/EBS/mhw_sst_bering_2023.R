@@ -37,10 +37,10 @@ mytheme <- theme(strip.text = element_text(size=10,color="white",family="sans",f
 #specify ESR year
 current.year <- year(Sys.Date())
 last.year <- current.year-1
-climatology_start_year <- 1985
-climatology_start_date <- "1985-01-01"
-climatology_end_year <- 2014
-climatology_end_date <- "2014-12-31"
+climatology_start_year <- 1991
+climatology_start_date <- "1991-01-01"
+climatology_end_year <- 2020
+climatology_end_date <- "2020-12-31"
 mean.years <- climatology_start_year:climatology_end_year 
 mean.lab <- paste0("Mean ",climatology_start_year,"-",climatology_end_year)
 
@@ -270,9 +270,10 @@ ggplot(data = clim_cat %>% filter(t>=as.Date(paste0(current.year-3,"-09-01"))), 
   ) +
   scale_x_date(date_labels = "%b %Y",expand=c(0.01,0)) +
   guides(colour = "none") +
+  ylim(c(-2,20))+
   labs(y = "Sea Surface Temperature (°C)", x = NULL) + 
  # theme(legend.position="none") +
-  facet_wrap(~region,ncol=1,scales="free_y") +
+  facet_wrap(~region,ncol=1) +
   mytheme2
   #theme(legend.position=c(0.18,0.85))
 dev.off()
