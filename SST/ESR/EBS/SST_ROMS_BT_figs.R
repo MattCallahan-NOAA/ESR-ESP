@@ -661,9 +661,14 @@ jdbcDriver <- RJDBC::JDBC(driverClass="oracle.jdbc.OracleDriver",
 
 con <- dbConnect(jdbcDriver, "jdbc:oracle:thin:@//tiger:2045/akfin.psmfc.org", keyring::key_list("akfin_oracle_db")$username, keyring::key_get("akfin_oracle_db", keyring::key_list("akfin_oracle_db")$username))
 
+# replace with latest year
+sst25 <- readRDS("EBS/Data/sst_domains_2025.RDS")
+max(sst25$read_date)
 
+# adjust min date based on previous max date
+# nm that was commented out anyway. No wonder it took so long
 start<-Sys.time()
-sst_domains_2025<-
+sst_domains_2026<-
   dbGetQuery(con,"with lkp as 
 (select 
 id,
@@ -680,7 +685,7 @@ and ecosystem = 'Eastern Bering Sea'
 sst as 
 (select crw_id, read_date, temp
 from afsc.erddap_crw_sst
---where read_date > to_date('03 oct 2023 12:00:00', 'dd mon yyyy hh:mi:ss')
+--where read_date > to_date('23 sep 2025 12:00:00', 'dd mon yyyy hh:mi:ss')
 )
 select ecosystem_sub, domain, read_date, round(avg(temp), 2) meansst
 from lkp
@@ -691,14 +696,14 @@ group by ecosystem_sub, domain, read_date") %>%
 end<-Sys.time()
 end-start
 
-min(sst_domains_2024$read_date)
+# min(sst_domains_2026$read_date)
+# 
+# sst_domains <- sst_domains %>%
+#   bind_rows(sst_domains_2024)
 
-sst_domains <- sst_domains %>%
-  bind_rows(sst_domains_2024)
+saveRDS(sst_domains_2026, "EBS/Data/sst_domains_2026.RDS")
 
-saveRDS(sst_domains_2025, "EBS/Data/sst_domains_2025.RDS")
-
-sst_domains <- readRDS("EBS/Data/sst_domains_2025.RDS")
+sst_domains <- readRDS("EBS/Data/sst_domains_2026.RDS")
 #update 2024
 #prepare data for plotting
 sst_domains<-sst_domains%>%
@@ -790,15 +795,17 @@ pb4
 # 
 # ROMSdata3$domain <- factor(ROMSdata3$domain, c("outer", "middle", "inner"))
 
-mom6<-readRDS("EBS/Data/MOM6/domain_averages.RDS") %>%
-  mutate(eco_short=ifelse(area_name=="Northern Bering Sea", "NBS", "SEBS"),
-         eco2=paste(eco_short, domain),
-         day=day(date),
-         newdate=as.Date(ifelse(month>=9,as.character(as.Date(paste("1999",month,day,sep="-"),format="%Y-%m-%d")),#  Create a dummy year so that each year can more easily be overlain
-                                                                as.character(as.Date(paste("2000",month,day,sep="-"),format="%Y-%m-%d"))),format("%Y-%m-%d")),
-                                          year2=ifelse(month>=9,year+1,year))
+# mom6<-readRDS("EBS/Data/MOM6/domain_averages.RDS") %>%
+#   mutate(eco_short=ifelse(area_name=="Northern Bering Sea", "NBS", "SEBS"),
+#          eco2=paste(eco_short, domain),
+#          day=day(date),
+#          newdate=as.Date(ifelse(month>=9,as.character(as.Date(paste("1999",month,day,sep="-"),format="%Y-%m-%d")),#  Create a dummy year so that each year can more easily be overlain
+#                                                                 as.character(as.Date(paste("2000",month,day,sep="-"),format="%Y-%m-%d"))),format("%Y-%m-%d")),
+#                                           year2=ifelse(month>=9,year+1,year))
+# 
+# mom6$domain <- factor(mom6$domain, c("outer", "middle", "inner"))
 
-mom6$domain <- factor(mom6$domain, c("outer", "middle", "inner"))
+mom6<-readRDS("EBS/Data/MOM6/domain_averages_2026.RDS")
 
 pb5<-ggplot() +
   geom_line(data=mom6 %>% filter(year2<last.year), # Older years are grey lines.
@@ -844,7 +851,7 @@ pb5<-ggplot() +
 pb5
 
 pb6<-plot_grid(pb4,pb5,ncol=1)
-png("EBS/2025/hottopic_sst_bt_inmidout.png", height=24, width=30, units="cm", res=300)
+png("EBS/2026/hottopic_sst_bt_inmidout.png", height=24, width=30, units="cm", res=300)
 pb6
 dev.off()
 
