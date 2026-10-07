@@ -72,10 +72,10 @@ mylegy <- 0.865
 
 current.year <- max(newdat$year)
 last.year <- current.year-1
-climatology_start_year <- 1985
-climatology_start_date <- "1985-01-01"
-climatology_end_year <- 2014
-climatology_end_date <- "2014-12-31"
+climatology_start_year <- 1991
+climatology_start_date <- "1991-01-01"
+climatology_end_year <- 2020
+climatology_end_date <- "2020-12-31"
 mean.years <- climatology_start_year:climatology_end_year 
 mean.lab <- paste0("Mean ",climatology_start_year,"-",climatology_end_year)
 
@@ -303,7 +303,7 @@ annualevents %>%
   #geom_text(data=annual_deviation, mapping=aes(x=year2, y=330, label=mean_dev))+
   mytheme + 
   facet_wrap(~region) + 
-  scale_x_continuous(expand=c(0,0.5)) +
+  scale_x_continuous(limits=c(1985, current.year), expand=c(0,0.5)) +
   scale_y_continuous(limits=c(0,370),expand=c(0.0,0)) +
   xlab("Year") + 
   ylab("Number of Marine Heatwave Days") +
