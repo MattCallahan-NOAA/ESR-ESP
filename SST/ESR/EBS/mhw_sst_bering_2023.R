@@ -189,7 +189,9 @@ ggplot(data=seasmean, aes(year2,meansst,color=Season)) +
 dev.off()
 
 
-#  Figure 3. Marine heatwaves in the southeastern and northern Bering Sea since September 2018
+#  Figure 3. Marine heatwaves in the southeastern and northern Bering Sea last three years
+# Maddeningly, this works with heatwaveR version ‘0.4.6’ but not '0.5.4'
+
 mhw <- (detect_event(ts2clm(newdat %>%
                               filter(Ecosystem_sub=="Southeastern Bering Sea") %>% 
                               rename(t=date,temp=meansst) %>% 
