@@ -326,6 +326,7 @@ mooring
 # mooring$prim_hybrid[28]#<- 136 # day of year - based on Prawler data
 # mooring$prim_hybrid[56]#<-136 # day of year - based on Prawler data
 
+# see script in m2 folder
 mooring<-mooring %>%
   mutate(prim_hybrid = case_when(year==2023 & bsierp_super_region=="M2 mooring" ~ 142,
                                  year==2023 & bsierp_super_region=="South middle shelf" ~ 142,
