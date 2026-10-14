@@ -332,6 +332,8 @@ mooring<-mooring %>%
                                  year==2023 & bsierp_super_region=="South middle shelf" ~ 142,
                                  year==2024 & bsierp_super_region=="M2 mooring" ~ 136,
                                  year==2024 & bsierp_super_region=="South middle shelf" ~ 136,
+                                 year==2025 & bsierp_super_region=="M2 mooring" ~ 141,
+                                 year==2025 & bsierp_super_region=="South middle shelf" ~ 141,
                                  year==2026 & bsierp_super_region=="M2 mooring" ~ 128,
                                  year==2026 & bsierp_super_region=="South middle shelf" ~ 128,
                                  TRUE ~ prim_hybrid))

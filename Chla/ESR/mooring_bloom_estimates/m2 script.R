@@ -2,7 +2,9 @@ library(tidyverse)
 library(tidync)
 library(ncdf4)
 
-m2<-"ESR/mooring_bloom_estimates/26bspr2a_eco_0001m.nc"
+#m2<-"ESR/mooring_bloom_estimates/26bspr2a_eco_0001m.nc"
+m2<-"ESR/mooring_bloom_estimates/25bspr2a_eco_0001m.nc"
+
 
 nc <- nc_open(m2)
 
@@ -32,3 +34,5 @@ ggplot(df, aes(x = datetime, y = chlor_fluorescence, color=depth)) +
 mf<-max(df$chlor_fluorescence, na.rm=T)
 
 df%>%filter(chlor_fluorescence==mf)
+# 2025
+yday((df%>%filter(chlor_fluorescence==mf))$datetime)
