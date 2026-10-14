@@ -145,7 +145,8 @@ clim_cat <- mhw %>%
                 thresh_2x = thresh + diff,
                 thresh_3x = thresh_2x + diff,
                 thresh_4x = thresh_3x + diff,
-                year=year(t))
+                year=year(t),
+                anom = temp - seas)
 
 # Set line colours
 lineColCat <- c(
