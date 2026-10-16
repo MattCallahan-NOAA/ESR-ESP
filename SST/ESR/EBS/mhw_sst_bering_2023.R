@@ -85,8 +85,9 @@ mymean %>%
   theme(plot.margin=unit(c(0.15,0.25,0.05,0),"cm"))
 dev.off()
 
-# writecsv for Johanna
-#write.csv(mymean, "EBS/2025/ebs_sst_anomaly.csv", row.names=FALSE)
+# write csv for Johanna
+
+# write.csv(mymean, paste0("EBS/ebs_sst_anomaly_",current.year,".csv"), row.names=FALSE)
 
 #  Create Figure 2. Total cumulative sea surface temperature (sum of daily temperatures) for each year, apportioned
 #  by season: summer (Jun–Aug), fall (Sept–Nov), winter (Dec–Feb), spring (Mar–May). Negative
