@@ -87,7 +87,7 @@ dev.off()
 
 # write csv for Johanna
 
-# write.csv(mymean, paste0("EBS/ebs_sst_anomaly_",current.year,".csv"), row.names=FALSE)
+write.csv(mymean, paste0("EBS/ebs_sst_anomaly_",current.year,".csv"), row.names=FALSE)
 
 #  Create Figure 2. Total cumulative sea surface temperature (sum of daily temperatures) for each year, apportioned
 #  by season: summer (Jun–Aug), fall (Sept–Nov), winter (Dec–Feb), spring (Mar–May). Negative
