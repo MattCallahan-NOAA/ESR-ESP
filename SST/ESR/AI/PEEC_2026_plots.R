@@ -508,3 +508,16 @@ annual_deviation %>%
   filter(year2 >=2015) %>%
   group_by(region) %>%
   summarize(post_baseline_deviation=mean(mean_dev))
+
+# Which AI region has the highest baseline??
+AIdata %>%
+  mutate(day=yday(date)) %>%
+  filter(year %in% 1985:2014 & month %in% 6:8) %>%
+  group_by(ecosystem_sub,day)%>%
+  summarize(mean_sst=mean(meansst)) %>%
+  ggplot()+
+  geom_line(aes(x=day, y=mean_sst, color=ecosystem_sub))
+
+dbGetQuery(con,
+           paste0("select max(to_char(date_time_start, 'DDD')) latest_haul, min(to_char(date_time_start, 'DDD')) earliest_haul 
+                  from gap_products.akfin_haul_v where survey_definition_id=52"))
